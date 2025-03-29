@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alarmdecoder"
+version = "1.0.0"
+description = "Modernized Python interface for the AlarmDecoder (AD2) family of alarm devices"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Nu Tech Software Solutions, Inc.", email = "general@support.nutech.com"},
+]
+keywords = ["alarmdecoder", "ad2usb", "security", "home automation"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Home Automation",
+    "Topic :: Security"
+]
+
+dependencies = [
+    "pyserial>=3.5"
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "mypy", "flake8"]
+
+[project.scripts]
+ad2-firmwareupload = "alarmdecoder.util.ad2_firmwareupload:main"
