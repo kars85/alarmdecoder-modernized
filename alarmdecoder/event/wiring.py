@@ -8,7 +8,7 @@ def wire_events(decoder):
     decoder.on_zone_fault += decoder._on_zone_fault
     decoder.on_zone_restore += decoder._on_zone_restore
     decoder.on_message += decoder._update_internal_states
-    decoder.on_expander_message += decoder.update_expander_status
+    decoder.on_expander_message += decoder._update_expander_status
     decoder.on_rfx_message += decoder._update_zone_tracker
     decoder.on_lrr_message += decoder._update_zone_tracker
     decoder.on_aui_message += decoder._update_zone_tracker
