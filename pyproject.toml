@@ -32,3 +32,10 @@ dev = ["pytest", "mypy", "flake8"]
 
 [project.scripts]
 ad2-firmwareupload = "alarmdecoder.util.ad2_firmwareupload:main"
+
+[tool.pytest.ini_options]
+# Add other options like markers, testpaths etc. if you have them
+pythonpath = [
+  "." # Add the project root directory to the Python path
+  # Add "src" here instead if your alarmdecoder package was inside a 'src' folder
+]
