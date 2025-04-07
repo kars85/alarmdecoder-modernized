@@ -5,41 +5,27 @@ Provides the main AlarmDecoder class.
 
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
-import re
 import logging
-from typing import Union
-from datetime import datetime
-from alarmdecoder.panels import ADEMCO
+import sys
 from alarmdecoder.event import event
-from alarmdecoder.util.exceptions import InvalidMessageError
+from alarmdecoder.event.wiring import wire_events, unwire_events
+from alarmdecoder.logger import get_logger
+from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
 from alarmdecoder.messages.panel_message import (
     PanelMessage,
-    LRRMessage,
-    ADEMCOContactID,
-    AdemcoCIDEvent
+    LRRMessage
 )
-from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
-from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.panels import ADEMCO
 from alarmdecoder.status import updater
-from alarmdecoder.event.wiring import wire_events, unwire_events
-from alarmdecoder.handlers.versioning import handle_version, handle_config
-from alarmdecoder.handlers.sending import handle_sending
-from alarmdecoder.handlers.config_io import get_config, save_config, get_config_string
 from alarmdecoder.status.updater import (
-    update_power_status,
-    update_chime_status,
-    update_alarm_status,
-    update_zone_bypass_status,
     update_armed_ready_status,
-    update_armed_status,
-    update_battery_status,
-    update_fire_status,
-    update_panic_status,
-    update_expander_status,
-    update_zone_tracker,
 )
-from alarmdecoder.logger import get_logger
+from alarmdecoder.util.exceptions import InvalidMessageError
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.zonetracking import Zonetracker
+from alarmdecoder.messages.lrr.system import LRRSystem
 logger = get_logger(__name__)
+
 
 class AlarmDecoder(object):
     def _delegate_update(self, method, *args, **kwargs):
@@ -54,36 +40,62 @@ class AlarmDecoder(object):
     """
 
     # High-level Events
-    on_arm = event.Event("This event is called when the panel is armed.\n\n**Callback definition:** *def callback(device, stay)*")
-    on_disarm = event.Event("This event is called when the panel is disarmed.\n\n**Callback definition:** *def callback(device)*")
-    on_power_changed = event.Event("This event is called when panel power switches between AC and DC.\n\n**Callback definition:** *def callback(device, status)*")
-    on_ready_changed = event.Event("This event is called when panel ready state changes.\n\n**Callback definition:** *def callback(device, status)*")
-    on_alarm = event.Event("This event is called when the alarm is triggered.\n\n**Callback definition:** *def callback(device, zone)*")
-    on_alarm_restored = event.Event("This event is called when the alarm stops sounding.\n\n**Callback definition:** *def callback(device, zone)*")
-    on_fire = event.Event("This event is called when a fire is detected.\n\n**Callback definition:** *def callback(device, status)*")
-    on_bypass = event.Event("This event is called when a zone is bypassed.  \n\n\n\n**Callback definition:** *def callback(device, status)*")
-    on_boot = event.Event("This event is called when the device finishes booting.\n\n**Callback definition:** *def callback(device)*")
-    on_config_received = event.Event("This event is called when the device receives its configuration. \n\n**Callback definition:** *def callback(device)*")
-    on_zone_fault = event.Event("This event is called when :py:class:`~alarmdecoder.zonetracking.Zonetracker` detects a zone fault.\n\n**Callback definition:** *def callback(device, zone)*")
-    on_zone_restore = event.Event("This event is called when :py:class:`~alarmdecoder.zonetracking.Zonetracker` detects that a fault is restored.\n\n**Callback definition:** *def callback(device, zone)*")
-    on_low_battery = event.Event("This event is called when the device detects a low battery.\n\n**Callback definition:** *def callback(device, status)*")
-    on_panic = event.Event("This event is called when the device detects a panic.\n\n**Callback definition:** *def callback(device, status)*")
-    on_relay_changed = event.Event("This event is called when a relay is opened or closed on an expander board.\n\n**Callback definition:** *def callback(device, message)*")
-    on_chime_changed = event.Event("This event is called when chime state changes.\n\n**Callback definition:** *def callback(device, message)*")
+    on_arm = event.Event(
+        "This event is called when the panel is armed.\n\n**Callback definition:** *def callback(device, stay)*")
+    on_disarm = event.Event(
+        "This event is called when the panel is disarmed.\n\n**Callback definition:** *def callback(device)*")
+    on_power_changed = event.Event(
+        "This event is called when panel power switches between AC and DC.\n\n**Callback definition:** *def callback(device, status)*")
+    on_ready_changed = event.Event(
+        "This event is called when panel ready state changes.\n\n**Callback definition:** *def callback(device, status)*")
+    on_alarm = event.Event(
+        "This event is called when the alarm is triggered.\n\n**Callback definition:** *def callback(device, zone)*")
+    on_alarm_restored = event.Event(
+        "This event is called when the alarm stops sounding.\n\n**Callback definition:** *def callback(device, zone)*")
+    on_fire = event.Event(
+        "This event is called when a fire is detected.\n\n**Callback definition:** *def callback(device, status)*")
+    on_bypass = event.Event(
+        "This event is called when a zone is bypassed.  \n\n\n\n**Callback definition:** *def callback(device, status)*")
+    on_boot = event.Event(
+        "This event is called when the device finishes booting.\n\n**Callback definition:** *def callback(device)*")
+    on_config_received = event.Event(
+        "This event is called when the device receives its configuration. \n\n**Callback definition:** *def callback(device)*")
+    on_zone_fault = event.Event(
+        "This event is called when :py:class:`~alarmdecoder.zonetracking.Zonetracker` detects a zone fault.\n\n**Callback definition:** *def callback(device, zone)*")
+    on_zone_restore = event.Event(
+        "This event is called when :py:class:`~alarmdecoder.zonetracking.Zonetracker` detects that a fault is restored.\n\n**Callback definition:** *def callback(device, zone)*")
+    on_low_battery = event.Event(
+        "This event is called when the device detects a low battery.\n\n**Callback definition:** *def callback(device, status)*")
+    on_panic = event.Event(
+        "This event is called when the device detects a panic.\n\n**Callback definition:** *def callback(device, status)*")
+    on_relay_changed = event.Event(
+        "This event is called when a relay is opened or closed on an expander board.\n\n**Callback definition:** *def callback(device, message)*")
+    on_chime_changed = event.Event(
+        "This event is called when chime state changes.\n\n**Callback definition:** *def callback(device, message)*")
 
     # Mid-level Events
-    on_message = event.Event("This event is called when standard panel :py:class:`~alarmdecoder.messages.Message` is received.\n\n**Callback definition:** *def callback(device, message)*")
-    on_expander_message = event.Event("This event is called when an :py:class:`~alarmdecoder.messages.ExpanderMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
-    on_lrr_message = event.Event("This event is called when an :py:class:`~alarmdecoder.messages.LRRMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
-    on_rfx_message = event.Event("This event is called when an :py:class:`~alarmdecoder.messages.RFMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
-    on_sending_received = event.Event("This event is called when a !Sending.done message is received from the AlarmDecoder.\n\n**Callback definition:** *def callback(device, status, message)*")
-    on_aui_message = event.Event("This event is called when an :py:class`~alarmdecoder.messages.AUIMessage` is received\n\n**Callback definition:** *def callback(device, message)*")
+    on_message = event.Event(
+        "This event is called when standard panel :py:class:`~alarmdecoder.messages.Message` is received.\n\n**Callback definition:** *def callback(device, message)*")
+    on_expander_message = event.Event(
+        "This event is called when an :py:class:`~alarmdecoder.messages.ExpanderMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
+    on_lrr_message = event.Event(
+        "This event is called when an :py:class:`~alarmdecoder.messages.LRRMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
+    on_rfx_message = event.Event(
+        "This event is called when an :py:class:`~alarmdecoder.messages.RFMessage` is received.\n\n**Callback definition:** *def callback(device, message)*")
+    on_sending_received = event.Event(
+        "This event is called when a !Sending.done message is received from the AlarmDecoder.\n\n**Callback definition:** *def callback(device, status, message)*")
+    on_aui_message = event.Event(
+        "This event is called when an :py:class`~alarmdecoder.messages.AUIMessage` is received\n\n**Callback definition:** *def callback(device, message)*")
 
     # Low-level Events
-    on_open = event.Event("This event is called when the device has been opened.\n\n**Callback definition:** *def callback(device)*")
-    on_close = event.Event("This event is called when the device has been closed.\n\n**Callback definition:** *def callback(device)*")
-    on_read = event.Event("This event is called when a line has been read from the device.\n\n**Callback definition:** *def callback(device, data)*")
-    on_write = event.Event("This event is called when data has been written to the device.\n\n**Callback definition:** *def callback(device, data)*")
+    on_open = event.Event(
+        "This event is called when the device has been opened.\n\n**Callback definition:** *def callback(device)*")
+    on_close = event.Event(
+        "This event is called when the device has been closed.\n\n**Callback definition:** *def callback(device)*")
+    on_read = event.Event(
+        "This event is called when a line has been read from the device.\n\n**Callback definition:** *def callback(device, data)*")
+    on_write = event.Event(
+        "This event is called when data has been written to the device.\n\n**Callback definition:** *def callback(device, data)*")
 
     # Constants
     KEY_F1 = chr(1) + chr(1) + chr(1)
@@ -113,8 +125,6 @@ class AlarmDecoder(object):
     KEY_S8 = chr(8) + chr(8) + chr(8)
     """Represents panel special key #8"""
 
-
-
     BATTERY_TIMEOUT = 30
     """Default timeout (in seconds) before the battery status reverts."""
     FIRE_TIMEOUT = 30
@@ -140,7 +150,7 @@ class AlarmDecoder(object):
     emulate_com = False
     """The status of the devices COM emulation."""
 
-    #Version Information
+    # Version Information
     serial_number = 'Unknown'
     """The device serial number"""
     version_number = 'Unknown'
@@ -316,7 +326,6 @@ class AlarmDecoder(object):
         self._device.close()
         unwire_events(self)
 
-
     def send(self, data):
         logger.debug("Sending data: %s", data)
         """
@@ -329,11 +338,6 @@ class AlarmDecoder(object):
         if self._device:
             if isinstance(data, str):
                 data = str.encode(data)
-
-            # Hack to support unicode under Python 2.x
-            if sys.version_info < (3,):
-                if isinstance(data, unicode):
-                    data = bytes(data)
 
             self._device.write(data)
 
@@ -381,7 +385,6 @@ class AlarmDecoder(object):
         """
         self.send("L{0:02}0\r".format(zone))
 
-
     def _handle_message(self, data):
         logger.debug("Handling incoming message: %s", data)
         """
@@ -418,7 +421,7 @@ class AlarmDecoder(object):
         :returns: :py:class:`~alarmdecoder.messages.Message`
         """
 
-        msg = Message(data)
+        msg = BaseMessage(data)
 
         if self._internal_address_mask & msg.mask > 0:
             if not self._ignore_message_states:
@@ -491,7 +494,6 @@ class AlarmDecoder(object):
 
         return msg
 
-
     def _update_internal_states(self, message):
         """
         Updates internal device states.
@@ -499,17 +501,17 @@ class AlarmDecoder(object):
         :param message: :py:class:`~alarmdecoder.messages.Message` to update internal states with
         :type message: :py:class:`~alarmdecoder.messages.Message`, :py:class:`~alarmdecoder.messages.ExpanderMessage`, :py:class:`~alarmdecoder.messages.LRRMessage`, or :py:class:`~alarmdecoder.messages.RFMessage`
         """
-        if isinstance(message, Message) and not self._ignore_message_states:        
-            self._delegate_update(update_armed_ready_status, message)        
-            self._delegate_update(updater.update_power_status, message)        
-            self._delegate_update(updater.update_chime_status, message)        
-            self._delegate_update(updater.update_alarm_status, message)        
-            self._delegate_update(updater.update_zone_bypass_status, message)        
-            self._delegate_update(updater.update_battery_status, message)        
+        if isinstance(message, BaseMessage) and not self._ignore_message_states:
+            self._delegate_update(update_armed_ready_status, message)
+            self._delegate_update(updater.update_power_status, message)
+            self._delegate_update(updater.update_chime_status, message)
+            self._delegate_update(updater.update_alarm_status, message)
+            self._delegate_update(updater.update_zone_bypass_status, message)
+            self._delegate_update(updater.update_battery_status, message)
             self._delegate_update(updater.update_fire_status, message)
-        elif isinstance(message, ExpanderMessage):        
-            self._delegate_update(updater.update_expander_status, message)      
-        # Always update zone tracking
+        elif isinstance(message, ExpanderMessage):
+            self._delegate_update(updater.update_expander_status, message)
+            # Always update zone tracking
         self._delegate_update(updater.update_zone_tracker, message)
 
     def _update_power_status(self, message=None, status=None):
@@ -541,14 +543,12 @@ class AlarmDecoder(object):
         from alarmdecoder.status.updater import update_battery_status
         update_battery_status(self, message, status)
 
-
     def update_fire_status(self, message=None, status=None):
         """
         Delegates the update of fire status to the updater module.
         """
         from alarmdecoder.status.updater import update_fire_status
         update_fire_status(self, message, status)
-
 
     def update_panic_status(self, status=None):
         """
@@ -557,7 +557,6 @@ class AlarmDecoder(object):
         from alarmdecoder.status.updater import update_panic_status
         update_panic_status(self, status)
 
-
     def update_expander_status(self, message):
         """
         Delegates the update of expander status to the updater module.
@@ -565,14 +564,13 @@ class AlarmDecoder(object):
         from alarmdecoder.status.updater import update_expander_status
         update_expander_status(self, message)
 
-
     def update_zone_tracker(self, message):
         """
         Delegates the update of zone tracking to the updater module.
         """
         from alarmdecoder.status.updater import update_zone_tracker
         update_zone_tracker(self, message)
-        
+
     def _on_relay_changed(self, sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the device detects a relay state change.
@@ -586,11 +584,9 @@ class AlarmDecoder(object):
         from alarmdecoder.handlers.versioning import handle_on_open
         handle_on_open(self, sender, *args, **kwargs)
 
-
     def _on_close(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_close
         handle_on_close(self, *args, **kwargs)
-
 
     def _on_read(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_read
@@ -598,13 +594,11 @@ class AlarmDecoder(object):
         if data:
             handle_on_read(self, data, *args[1:], **kwargs)
 
-
     def _on_write(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_write
         data = args[0] if args else None
         if data:
             handle_on_write(self, data, *args[1:], **kwargs)
-
 
     def _on_zone_fault(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.status.updater import handle_zone_fault
@@ -612,13 +606,12 @@ class AlarmDecoder(object):
         if zone:
             handle_zone_fault(self, zone, *args[1:], **kwargs)
 
-
     def _on_zone_restore(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.status.updater import handle_zone_restore
         zone = args[0] if args else None
         if zone:
             handle_zone_restore(self, zone, *args[1:], **kwargs)
-    
+
     def _on_panic(self, sender: object, *args: object, **kwargs: object) -> None:
         """
         Handles panic status updates.
@@ -626,7 +619,7 @@ class AlarmDecoder(object):
         status = kwargs.get('status')
         self._panic = status
         self.on_panic.fire(self, status)
-        
+
     def _on_chime_changed(self, sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the device detects a chime state change.
@@ -692,8 +685,3 @@ class AlarmDecoder(object):
         if self._power_status != status:
             self._power_status = status
             self.on_power_changed.fire(self, self._power_status)
-
-
-
-
-

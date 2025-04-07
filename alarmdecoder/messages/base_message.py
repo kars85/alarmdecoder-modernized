@@ -12,6 +12,9 @@ class BaseMessage:
     raw: Optional[str] = None
     timestamp: Optional[datetime] = None
 
+    def __init__(self):
+        self.mask = None
+
     def dict(self) -> dict:
         return {
             "raw": self.raw,

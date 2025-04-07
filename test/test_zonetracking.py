@@ -3,7 +3,8 @@ from unittest.mock import Mock, MagicMock, patch
 
 from alarmdecoder import AlarmDecoder
 from alarmdecoder.panels import ADEMCO
-from alarmdecoder.messages import Message, ExpanderMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.messages import ExpanderMessage
 from alarmdecoder.zonetracking import Zonetracker, Zone
 
 
@@ -56,24 +57,24 @@ class TestZonetracking(TestCase):
         self.assertTrue(self._restored)
 
     def test_message_ready(self):
-        msg = Message('[00000000000000100A--],001,[f707000600e5800c0c020000],"                                "')
+        msg = BaseMessage('[00000000000000100A--],001,[f707000600e5800c0c020000],"                                "')
         self._zonetracker.update(msg)
 
         self.assertEqual(len(self._zonetracker._zones_faulted), 1)
 
-        msg = Message('[10000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        msg = BaseMessage('[10000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self._zonetracker.update(msg)
 
         self.assertEqual(len(self._zonetracker._zones_faulted), 0)
 
     def test_message_fault_text(self):
-        msg = Message('[00000000000000000A--],001,[f707000600e5800c0c020000],"FAULT 1                         "')
+        msg = BaseMessage('[00000000000000000A--],001,[f707000600e5800c0c020000],"FAULT 1                         "')
         self._zonetracker.update(msg)
 
         self.assertEqual(len(self._zonetracker._zones_faulted), 1)
 
     def test_ECP_failure(self):
-        msg = Message('[00000000000000100A--],0bf,[f707000600e5800c0c020000],"CHECK 1                         "')
+        msg = BaseMessage('[00000000000000100A--],0bf,[f707000600e5800c0c020000],"CHECK 1                         "')
         self._zonetracker.update(msg)
 
         self.assertEqual(self._zonetracker._zones[1].status, Zone.CHECK)
@@ -87,7 +88,7 @@ class TestZonetracking(TestCase):
         ]
 
         for m in panel_messages:
-            msg = Message(m)
+            msg = BaseMessage(m)
 
             self._zonetracker.update(msg)
 
@@ -103,7 +104,7 @@ class TestZonetracking(TestCase):
         ]
 
         for m in panel_messages:
-            msg = Message(m)
+            msg = BaseMessage(m)
 
             self._zonetracker.update(msg)
 
@@ -121,7 +122,7 @@ class TestZonetracking(TestCase):
         ]
 
         for m in panel_messages:
-            msg = Message(m)
+            msg = BaseMessage(m)
 
             self._zonetracker.update(msg)
 
@@ -139,7 +140,7 @@ class TestZonetracking(TestCase):
         ]
 
         for m in panel_messages:
-            msg = Message(m)
+            msg = BaseMessage(m)
 
             self._zonetracker.update(msg)
 
@@ -147,7 +148,7 @@ class TestZonetracking(TestCase):
         self._zonetracker._zones[4].timestamp -= 35     # forcefully expire the zone
 
         # generic message to force an update.
-        msg = Message('[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        msg = BaseMessage('[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self._zonetracker.update(msg)
 
         self.assertNotIn(4, self._zonetracker._zones_faulted)

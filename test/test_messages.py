@@ -1,6 +1,6 @@
 from unittest import TestCase
-
-from alarmdecoder.messages import Message, ExpanderMessage, RFMessage, LRRMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.messages import ExpanderMessage, RFMessage, LRRMessage
 from alarmdecoder.messages.lrr import LRR_EVENT_TYPE, LRR_CID_EVENT, LRR_EVENT_STATUS
 from alarmdecoder.util.exceptions import InvalidMessageError
 from alarmdecoder.panels import ADEMCO
@@ -15,7 +15,7 @@ class TestMessages(TestCase):
 
     ### Tests
     def test_message_parse(self):
-        msg = Message('[00000000000000000A--],001,[f707000600e5800c0c020000],"FAULT 1                         "')
+        msg = BaseMessage('[00000000000000000A--],001,[f707000600e5800c0c020000],"FAULT 1                         "')
 
         self.assertFalse(msg.ready)
         self.assertFalse(msg.armed_away)
@@ -42,7 +42,7 @@ class TestMessages(TestCase):
 
     def test_message_parse_fail(self):
         with self.assertRaises(InvalidMessageError):
-            msg = Message('')
+            msg = BaseMessage('')
 
     def test_expander_message_parse(self):
         msg = ExpanderMessage('!EXP:07,01,01')

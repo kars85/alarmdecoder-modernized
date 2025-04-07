@@ -8,7 +8,8 @@ from unittest.mock import Mock, MagicMock, patch
 
 from alarmdecoder.decoder import AlarmDecoder
 from alarmdecoder.devices import USBDevice
-from alarmdecoder.messages import Message, RFMessage, LRRMessage, ExpanderMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.messages import RFMessage, LRRMessage, ExpanderMessage
 from alarmdecoder.event.event import Event, EventHandler
 from alarmdecoder.zonetracking import Zonetracker
 from alarmdecoder.panels import ADEMCO, DSC
@@ -179,14 +180,14 @@ class TestAlarmDecoder(TestCase):
 
     def test_message(self):
         msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
-        self.assertIsInstance(msg, Message)
+        self.assertIsInstance(msg, BaseMessage)
 
         self._decoder._on_read(self, data=b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._message_received)
 
     def test_message_kpm(self):
         msg = self._decoder._handle_message(b'!KPM:[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
-        self.assertIsInstance(msg, Message)
+        self.assertIsInstance(msg, BaseMessage)
 
         self._decoder._on_read(self, data=b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._message_received)
@@ -367,3 +368,5 @@ class TestAlarmDecoder(TestCase):
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 05                        "')
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 04                        "')
         self.assertEquals(self._zone_restored, 3)
+
+

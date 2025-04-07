@@ -5,7 +5,7 @@ Utility functions for byte handling, firmware file parsing,
 and low-level data manipulation for AlarmDecoder devices.
 """
 
-import os
+
 import select
 from typing import Union
 

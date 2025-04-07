@@ -113,7 +113,7 @@ def command(opts: argparse.Namespace, version: str, config: Configuration) -> in
     if opts.command == "ls":
         opts.query = ["files"]
 
-    if opts.query == []:
+    if not opts.query:
         opts.no_version = True
         sys.stderr.write("Available queries:\n\n")
         opts.query = ["queries"]

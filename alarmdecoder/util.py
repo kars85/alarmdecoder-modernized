@@ -7,14 +7,12 @@ Provides utility classes for the `AlarmDecoder`_ (AD2) devices.
 """
 
 import time
-import threading
+
 import select
-import sys
+
 import alarmdecoder
 
-from io import open
-from collections import deque
-
+from alarmdecoder.util.io import bytes_available, read_firmware_file
 
 class NoDeviceError(Exception):
     """
@@ -153,7 +151,7 @@ class Firmware(object):
                         if isinstance(c, int):
                             c = chr(c)
 
-                        if c == '\xff' or c == '\r':    # HACK: odd case for our mystery \xff byte.
+                        if c == '\xff' or c == '\r':  # HACK: odd case for our mystery \xff byte.
                             # Boot started, start looking for the !boot message
                             if data_read.startswith("!sn"):
                                 stage = progress_stage(Firmware.STAGE_BOOT)

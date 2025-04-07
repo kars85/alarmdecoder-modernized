@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 
 import argparse
-import os
 import sys
 import time
 import logging
 import traceback
-import bin.ad2_firmwareupload as cli
 from alarmdecoder.util.firmware import Firmware
 from alarmdecoder.util.exceptions import UploadError, NoDeviceError
 from alarmdecoder.devices import SerialDevice, SocketDevice
