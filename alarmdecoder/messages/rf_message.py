@@ -4,7 +4,9 @@ from typing import Optional, List
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
+
 
 @dataclass
 class RFMessage(BaseMessage):
@@ -33,8 +35,9 @@ class RFMessage(BaseMessage):
             self.loop[1] = is_bit_set(6)
             self.loop[3] = is_bit_set(7)
             self.loop[0] = is_bit_set(8)
-            
-            logger.debug(f"RF parsed: serial={self.serial_number}, battery={self.battery}, supervision={self.supervision}, loops={self.loop}")
+
+            logger.debug(
+                f"RF parsed: serial={self.serial_number}, battery={self.battery}, supervision={self.supervision}, loops={self.loop}")
 
         except ValueError:
             raise InvalidMessageError(f"Received invalid RF message: {data}")

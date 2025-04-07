@@ -1,10 +1,3 @@
-"""
-Provides the main AlarmDecoder class.
-
-.. _AlarmDecoder: http://www.alarmdecoder.com
-
-.. moduleauthor:: Scott Petersen <scott@nutech.com>
-"""
 import logging
 import sys
 from alarmdecoder.event import event
@@ -26,8 +19,7 @@ from alarmdecoder.zonetracking import Zonetracker
 from alarmdecoder.messages.lrr.system import LRRSystem
 logger = get_logger(__name__)
 
-
-class AlarmDecoder(object):
+class AlarmDecoder:
     def _delegate_update(self, method, *args, **kwargs):
         try:
             logger.debug("Delegating update to %s with args=%s kwargs=%s", method.__name__, args, kwargs)
@@ -374,7 +366,8 @@ class AlarmDecoder(object):
 
         status = 2 if simulate_wire_problem else 1
 
-        self.send("L{0:02}{1}\r".format(zone, status))
+        self.send(f"L{int(zone):02}{status}
+")
 
     def clear_zone(self, zone):
         """
@@ -383,7 +376,8 @@ class AlarmDecoder(object):
         :param zone: zone to clear
         :type zone: int
         """
-        self.send("L{0:02}0\r".format(zone))
+        self.send(f"L{int(zone):02}0
+")
 
     def _handle_message(self, data):
         logger.debug("Handling incoming message: %s", data)

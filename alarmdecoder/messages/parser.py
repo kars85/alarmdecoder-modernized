@@ -12,6 +12,7 @@ from alarmdecoder.messages.panel_message import (
 from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
 
 
@@ -20,7 +21,7 @@ def parse_message(data: str) -> BaseMessage:
     Entry point for message parsing. Detects type and delegates to handler.
     """
     logger.debug(f"Received message: {data}")
-    
+
     try:
         if data.startswith("!AUI:"):
             logger.debug(f"Identified as AUI message")
@@ -95,7 +96,7 @@ def parse_ademco_cid(data: str) -> ADEMCOContactID:
         if not match:
             logger.warning(f"ADEMCO CID format mismatch: {data}")
             raise InvalidMessageError(f"Could not parse ADEMCO CID: {data}")
-        
+
         event = AdemcoCIDEvent(
             code=match.group(1),
             qualifier=match.group(2),
@@ -119,15 +120,15 @@ def parse_expander(data: str) -> ExpanderMessage:
         logger.debug(f"Parsing expander message: {data}")
         # Example message: !EXP:18,Z,00
         parts = data.strip()[5:].split(",")
-        
+
         if len(parts) < 3:
             logger.warning(f"Expander message has insufficient parts: {data}")
             raise InvalidMessageError(f"Expander message format invalid (expected at least 3 parts): {data}")
-            
+
         address = parts[0]
         msg_type = parts[1]
         channel = parts[2]
-        
+
         return ExpanderMessage(
             raw=data,
             address=int(address) if address and address.strip() else None,
@@ -149,17 +150,17 @@ def parse_rf(data: str) -> RFMessage:
         logger.debug(f"Parsing RF message: {data}")
         # Example message: !RFX:00000001,01,AA,00,C
         parts = data.strip()[5:].split(",")
-        
+
         if len(parts) < 5:
             logger.warning(f"RF message has insufficient parts: {data}")
             raise InvalidMessageError(f"RF message format invalid (expected 5 parts): {data}")
-            
+
         serial_number = parts[0]
         loop = parts[1]
         battery = parts[2]
         supervision = parts[3]
         value = parts[4]
-        
+
         # Convert loop string to a list of booleans
         loop_converted = [c == '1' for c in loop] if isinstance(loop, str) else loop
 
@@ -206,19 +207,19 @@ def parse_aui(data: str) -> AUIMessage:
         if not data.startswith("!AUI:"):
             logger.warning(f"Invalid AUI message prefix: {data}")
             raise InvalidMessageError(f"AUI message must start with '!AUI:': {data}")
-            
+
         parts = data.strip()[5:].split(",", 4)
-        
+
         if len(parts) < 3:
             logger.warning(f"AUI message has insufficient parts: {data}")
             raise InvalidMessageError(f"AUI message format invalid (expected at least 3 parts): {data}")
-        
+
         aui_id = parts[0]
         msg_type = parts[1]
         line = parts[2]
         text1 = parts[3] if len(parts) > 3 else ""
         text2 = parts[4] if len(parts) > 4 else ""
-        
+
         message = AUIMessage(data)
         message.aui_id = aui_id
         message.msg_type = msg_type

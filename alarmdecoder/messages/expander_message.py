@@ -3,7 +3,9 @@ from typing import Optional
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
+
 
 @dataclass
 class ExpanderMessage(BaseMessage):
@@ -33,7 +35,7 @@ class ExpanderMessage(BaseMessage):
                 self.type = ExpanderMessage.RELAY
             else:
                 raise InvalidMessageError(f"Unknown expander message header: {data}")
-            
+
             logger.debug(f"Expander: addr={self.address}, chan={self.channel}, type={self.type}, value={self.value}")
 
         except ValueError:

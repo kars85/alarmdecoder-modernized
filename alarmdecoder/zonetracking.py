@@ -14,7 +14,7 @@ from .messages import ExpanderMessage
 from .panels import ADEMCO, DSC
 
 
-class Zone(object):
+class Zone:
     """
     Representation of a panel zone.
     """
@@ -62,16 +62,14 @@ class Zone(object):
         """
         String conversion operator.
         """
-        return 'Zone {0} {1}'.format(self.zone, self.name)
+        return f'Zone {self.zone} {self.name}'
 
     def __repr__(self):
         """
         Human readable representation operator.
         """
-        return 'Zone({0}, {1}, ts {2})'.format(self.zone, Zone.STATUS[self.status], self.timestamp)
-
-
-class Zonetracker(object):
+        return f'Zone({self.zone}, {Zone.STATUS[self.status]}, ts {self.timestamp})'
+class Zonetracker:
     """
     Handles tracking of zones and their statuses.
     """

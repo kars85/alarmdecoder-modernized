@@ -1,6 +1,8 @@
 # alarmdecoder/status/updater.py
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
+
 
 def update_power_status(device, message=None, status=None):
     """
@@ -12,6 +14,7 @@ def update_power_status(device, message=None, status=None):
         device._ac_power = new_status
         device.on_power_changed.fire(device, new_status)
 
+
 def update_chime_status(device, message=None, status=None):
     """
     Handles chime status changes.
@@ -21,6 +24,7 @@ def update_chime_status(device, message=None, status=None):
         logger.debug(f"Chime status changed to: {'ON' if new_status else 'OFF'}")
         device._chime_on = new_status
         device.on_chime_changed.fire(device, message or status)
+
 
 def update_alarm_status(device, message=None, status=None, zone=None):
     """
@@ -38,7 +42,8 @@ def update_alarm_status(device, message=None, status=None, zone=None):
         logger.info("Alarm restored to normal state")
         device._alarm_occurring = False
         device.on_alarm_restored.fire(device, zone)
-        
+
+
 def update_armed_status(device, message=None, status=None, status_stay=None):
     """
     Handles arming state changes.
@@ -57,6 +62,7 @@ def update_armed_status(device, message=None, status=None, status_stay=None):
         logger.info(f"Armed stay status changed: {'ARMED STAY' if status_stay else 'ARMED AWAY'}")
         device._armed_stay = status_stay
         device.on_arm.fire(device, status_stay)
+
 
 def update_armed_ready_status(decoder, message=None):
     if message is not None:
@@ -85,6 +91,7 @@ def update_armed_ready_status(decoder, message=None):
             decoder._armed_home = False
             decoder.on_disarm.fire(decoder)
 
+
 def update_battery_status(decoder, message=None, status=None):
     if message is not None:
         status = message.battery_low
@@ -93,6 +100,7 @@ def update_battery_status(decoder, message=None, status=None):
         logger.warning(f"Battery status changed: {'LOW BATTERY' if status else 'BATTERY NORMAL'}")
         decoder._battery = status
         decoder.on_low_battery.fire(decoder, status)
+
 
 def update_fire_status(decoder, message=None, status=None):
     if message is not None:
@@ -104,6 +112,7 @@ def update_fire_status(decoder, message=None, status=None):
         decoder._fire = status
         decoder.on_fire.fire(decoder, status)
 
+
 def update_panic_status(decoder, status=None):
     if status is not None and status != decoder._panic:
         log_level = logger.critical if status else logger.info
@@ -111,10 +120,12 @@ def update_panic_status(decoder, status=None):
         decoder._panic = status
         decoder.on_panic.fire(decoder, status)
 
+
 def update_expander_status(decoder, message):
     if hasattr(message, "relay") and hasattr(message, "channel") and hasattr(message, "value"):
         logger.debug(f"Relay changed: relay={message.relay}, channel={message.channel}, value={message.value}")
         decoder.on_relay_changed.fire(decoder, message)
+
 
 def update_zone_bypass_status(device, message=None, status=None, zone=None):
     """
@@ -126,7 +137,8 @@ def update_zone_bypass_status(device, message=None, status=None, zone=None):
     else:
         logger.info(f"Zone {zone} bypass status: {'BYPASSED' if new_status else 'NOT BYPASSED'}")
     device.on_bypass.fire(device, new_status)
-        
+
+
 def update_zone_tracker(decoder, message):
     """
     Passes the message to the zonetracker for processing.
@@ -134,7 +146,8 @@ def update_zone_tracker(decoder, message):
     """
     if decoder._zonetracker is not None:
         logger.debug(f"Updating zone tracker with message: {message}")
-        decoder._zonetracker.update(message) 
+        decoder._zonetracker.update(message)
+
 
 def handle_zone_fault(decoder, zone, *args, **kwargs):
     """
@@ -143,12 +156,14 @@ def handle_zone_fault(decoder, zone, *args, **kwargs):
     logger.warning(f"Zone fault detected in zone {zone}")
     decoder.on_zone_fault.fire(decoder, zone)
 
+
 def handle_zone_restore(decoder, zone, *args, **kwargs):
     """
     Fires the zone restore event.
     """
     logger.info(f"Zone {zone} restored to normal state")
     decoder.on_zone_restore.fire(decoder, zone)
+
 
 def handle_low_battery(decoder, status=None, *args, **kwargs):
     """

@@ -14,6 +14,22 @@ import alarmdecoder
 
 from alarmdecoder.util.io import bytes_available, read_firmware_file
 
+"""
+Provides utility classes for the `AlarmDecoder`_ (AD2) devices.
+
+.. _AlarmDecoder: http://www.alarmdecoder.com
+
+.. moduleauthor:: Scott Petersen <scott@nutech.com>
+"""
+
+import time
+
+import select
+
+import alarmdecoder
+
+from alarmdecoder.util.io import bytes_available, read_firmware_file
+
 class NoDeviceError(Exception):
     """
     No devices found.
@@ -56,7 +72,7 @@ class UploadChecksumError(UploadError):
     pass
 
 
-class Firmware(object):
+class Firmware:
     """
     Represents firmware for the `AlarmDecoder`_ devices.
     """
@@ -162,7 +178,7 @@ class Firmware(object):
                             # Checksum error
                             elif data_read == '!ce':
                                 running = False
-                                raise UploadChecksumError("Checksum error in {0}".format(file_path))
+                                raise UploadChecksumError(f"Checksum error in {file_path}")
                             # Bad data
                             elif data_read == '!no':
                                 running = False

@@ -488,4 +488,3 @@ class SocketDevice(Device):
         # However, setting VERIFY_NONE might be sufficient.
         # For simplicity now, just return ok.
         return ok
-
