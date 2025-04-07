@@ -112,7 +112,7 @@ class TestSerialDevice(TestCase):
                     except StopIteration:
                         pass
 
-                    self.assertEquals(ret, "testing")
+                    self.assertEqual(ret, "testing")
 
     def test_read_line_timeout(self):
         with patch.object(self._device._device, 'read', return_value=b'a') as mock:
@@ -207,7 +207,7 @@ class TestSocketDevice(TestCase):
                     except StopIteration:
                         pass
 
-            self.assertEquals(ret, "testing")
+            self.assertEqual(ret, "testing")
 
     def test_read_line_timeout(self):
         with patch('socket.socket.fileno', return_value=1):
