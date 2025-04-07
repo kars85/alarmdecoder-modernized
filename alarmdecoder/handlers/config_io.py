@@ -1,6 +1,8 @@
 # alarmdecoder/handlers/config_io.py
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
+
 
 def get_config_string(device):
     """
@@ -20,10 +22,10 @@ def get_config_string(device):
     mode_str = next((k for k, v in device.PANEL_TYPES.items() if v == device.mode), "ADEMCO")
     config_entries.append(('MODE', mode_str))
     config_entries.append(('COM', 'Y' if device.emulate_com else 'N'))
-    
+
     config_string = '&'.join(['='.join(t) for t in config_entries])
     logger.debug(f"Generated config string: {config_string}")
-    
+
     return config_string
 
 

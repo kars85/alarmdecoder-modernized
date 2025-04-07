@@ -60,7 +60,3 @@ def unwire_events(decoder):
     decoder.on_disarm -= decoder._on_disarm
     decoder.on_ready_changed -= decoder._on_ready_changed
     decoder.on_power_changed -= decoder._on_power_changed
-
-
-
-

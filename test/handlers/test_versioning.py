@@ -2,6 +2,7 @@ from unittest.mock import MagicMock
 from alarmdecoder.handlers.versioning import handle_version, handle_config
 from alarmdecoder.handlers.config_io import get_config_string, save_config, get_config
 
+
 def test_handle_version_sets_version_data():
     # Create a mock that has the necessary attributes and methods
     device = MagicMock()
@@ -9,24 +10,25 @@ def test_handle_version_sets_version_data():
     device._version_flags = None
     # Mock the event handler
     device.on_version = MagicMock()
-    
+
     # Test with a release version
     data = "!1.2.3r"
     handle_version(device, data)
-    
+
     # Assertions based on actual implementation
     assert device._version_number == "1.2.3r"
     assert "RELEASE" in device._version_flags
     device.on_version.fire.assert_called_once_with(device)
-    
+
     # Reset and test with beta
     device.reset_mock()
     device._version_flags = set()
     data = "!1.2.3b"
     handle_version(device, data)
-    
+
     assert device._version_number == "1.2.3b"
     assert "BETA" in device._version_flags
+
 
 def test_handle_config_sets_configbits():
     device = MagicMock()
@@ -36,6 +38,7 @@ def test_handle_config_sets_configbits():
     handle_config(device, data)
     # assuming handle_config sets device._configbits = data[1:]
     assert device._configbits == "1234"
+
 
 def test_save_and_restore_config():
     device = MagicMock()
@@ -52,6 +55,7 @@ def test_save_and_restore_config():
 
     assert device._version_number == "1.0.0"
     assert device._configbits == "AABBCC"
+
 
 def test_get_config_string_format():
     device = MagicMock()

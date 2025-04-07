@@ -2,7 +2,9 @@
 from alarmdecoder.messages.parser import parse_message
 from alarmdecoder.util.exceptions import InvalidMessageError
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
+
 
 def handle_version(device, data):
     if data.startswith("!"):
@@ -28,7 +30,8 @@ def handle_config(device, data):
         logger.info(f"Config info received: {data.strip()}")
         logger.debug(f"Parsed config bits: {device._configbits}")
         device.on_config_received.fire(device)
-    
+
+
 def handle_on_open(decoder, sender, *args, **kwargs):
     """
     Handler for when the device is opened.
@@ -37,6 +40,7 @@ def handle_on_open(decoder, sender, *args, **kwargs):
     decoder.on_open.fire(decoder)
     logger.info("Device opened, sending version query")
     decoder.send("!V")
+
 
 def handle_on_close(decoder, *args, **kwargs):
     """
@@ -57,12 +61,13 @@ def handle_on_close(decoder, *args, **kwargs):
 
     decoder.on_close.fire(decoder)
 
+
 def handle_on_read(decoder, data, *args, **kwargs):
     """
     Handles incoming raw data from the device.
     """
     decoder.on_read.fire(decoder, data)
-    
+
     # Log boot messages or other special messages that start with !
     if data.startswith("!"):
         if not (data.startswith("!CONFIG") or data.startswith("!VER")):
@@ -76,6 +81,7 @@ def handle_on_read(decoder, data, *args, **kwargs):
     except Exception as err:
         decoder.logger.exception("Unexpected error in _on_read: %s", err)
 
+
 def handle_on_write(decoder, data, *args, **kwargs):
     """
     Handles write events for logging/debugging.
@@ -85,6 +91,5 @@ def handle_on_write(decoder, data, *args, **kwargs):
         logger.info(f"Sending configuration command: {data.strip()}")
     elif data.startswith("!V"):
         logger.debug("Sending version query")
-    
-    decoder.on_write.fire(decoder, data)
 
+    decoder.on_write.fire(decoder, data)
