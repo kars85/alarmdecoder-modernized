@@ -10,7 +10,7 @@
 #   * Removed earg from fire() and added support for args/kwargs.
 
 
-class Event(object):
+class Event:
 
     def __init__(self, doc=None):
         self.__doc__ = doc
@@ -24,7 +24,7 @@ class Event(object):
         pass
 
 
-class EventHandler(object):
+class EventHandler:
 
     def __init__(self, event, obj):
 
@@ -78,7 +78,7 @@ class EventHandler(object):
         """
 
         for func in self._getfunctionlist():
-            if type(func) == EventHandler:
+            if type(func) is EventHandler:
                 func.fire(*args, **kwargs)
             else:
                 func(self.obj, *args, **kwargs)

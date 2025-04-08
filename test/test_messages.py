@@ -1,9 +1,10 @@
 from unittest import TestCase
+
+from alarmdecoder.messages import ExpanderMessage, LRRMessage, RFMessage
 from alarmdecoder.messages.base_message import BaseMessage
-from alarmdecoder.messages import ExpanderMessage, RFMessage, LRRMessage
-from alarmdecoder.messages.lrr import LRR_EVENT_TYPE, LRR_CID_EVENT, LRR_EVENT_STATUS
-from alarmdecoder.util.exceptions import InvalidMessageError
+from alarmdecoder.messages.lrr import LRR_CID_EVENT, LRR_EVENT_STATUS, LRR_EVENT_TYPE
 from alarmdecoder.panels import ADEMCO
+from alarmdecoder.util.exceptions import InvalidMessageError
 
 
 class TestMessages(TestCase):
@@ -42,7 +43,7 @@ class TestMessages(TestCase):
 
     def test_message_parse_fail(self):
         with self.assertRaises(InvalidMessageError):
-            msg = BaseMessage('')
+            BaseMessage('')
 
     def test_expander_message_parse(self):
         msg = ExpanderMessage('!EXP:07,01,01')
@@ -53,7 +54,7 @@ class TestMessages(TestCase):
 
     def test_expander_message_parse_fail(self):
         with self.assertRaises(InvalidMessageError):
-            msg = ExpanderMessage('')
+            ExpanderMessage('')
 
     def test_rf_message_parse(self):
         msg = RFMessage('!RFX:0180036,80')
@@ -63,7 +64,7 @@ class TestMessages(TestCase):
 
     def test_rf_message_parse_fail(self):
         with self.assertRaises(InvalidMessageError):
-            msg = RFMessage('')
+            RFMessage('')
 
     def test_lrr_message_parse_v1(self):
         msg = LRRMessage('!LRR:012,1,ARM_STAY')
@@ -75,18 +76,18 @@ class TestMessages(TestCase):
     def test_lrr_message_parse_v2(self):
         msg = LRRMessage('!LRR:001,1,CID_3401,ff')
         self.assertIsInstance(msg, LRRMessage)
-        self.assertEquals(msg.event_data, '001')
-        self.assertEquals(msg.partition, '1')
-        self.assertEquals(msg.event_prefix, 'CID')
-        self.assertEquals(msg.event_source, LRR_EVENT_TYPE.CID)
-        self.assertEquals(msg.event_status, LRR_EVENT_STATUS.RESTORE)
-        self.assertEquals(msg.event_code, LRR_CID_EVENT.OPENCLOSE_BY_USER)
-        self.assertEquals(msg.report_code, 'ff')
+        self.assertEqual(msg.event_data, '001')
+        self.assertEqual(msg.partition, '1')
+        self.assertEqual(msg.event_prefix, 'CID')
+        self.assertEqual(msg.event_source, LRR_EVENT_TYPE.CID)
+        self.assertEqual(msg.event_status, LRR_EVENT_STATUS.RESTORE)
+        self.assertEqual(msg.event_code, LRR_CID_EVENT.OPENCLOSE_BY_USER)
+        self.assertEqual(msg.report_code, 'ff')
 
     def test_lrr_event_code_override(self):
         msg = LRRMessage('!LRR:001,1,CID_3400,01')
-        self.assertEquals(msg.event_code, LRR_CID_EVENT.OPENCLOSE_BY_USER)  # 400 -> 401
+        self.assertEqual(msg.event_code, LRR_CID_EVENT.OPENCLOSE_BY_USER)  # 400 -> 401
 
     def test_lrr_message_parse_fail(self):
         with self.assertRaises(InvalidMessageError):
-            msg = LRRMessage('')
+            LRRMessage('')

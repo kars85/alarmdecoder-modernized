@@ -8,11 +8,11 @@ This module contains the base device type for the `AlarmDecoder`_ (AD2) family.
 
 import threading
 
-from alarmdecoder.util import CommError, TimeoutError, InvalidMessageError
 from alarmdecoder.event import event
+from alarmdecoder.util.exceptions import CommError, InvalidMessageError, TimeoutError
 
 try:
-    from OpenSSL import SSL as BaseSSL, crypto
+    from OpenSSL import SSL
 
     have_openssl = True
 
@@ -29,10 +29,11 @@ except ImportError:
 
     have_openssl = False
 from alarmdecoder.logger import get_logger
+
 logger = get_logger(__name__)
 
 
-class Device(object):
+class Device:
     """
     Base class for all `AlarmDecoder`_ (AD2) device types.
     """
@@ -93,6 +94,12 @@ class Device(object):
         :returns: whether or not the reader thread is alive
         """
         return self._read_thread.is_alive()
+
+    def read_line(self, timeout: float = 0.0, purge_buffer: bool = False) -> str:
+        """
+        Stub for read_line, to be implemented by subclasses.
+        """
+        raise NotImplementedError("read_line() must be implemented in subclasses")
 
     def stop_reader(self):
         """
@@ -158,10 +165,10 @@ class Device(object):
                 except SSL.WantReadError:
                     pass
 
-                except CommError as err:
+                except CommError:
                     self._device.close()
 
-                except Exception as err:
+                except Exception:
                     self._device.close()
                     self._running = False
                     raise

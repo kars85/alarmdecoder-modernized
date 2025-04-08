@@ -1,5 +1,6 @@
 import unittest
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock, patch
+
 import bin.ad2_firmwareupload as cli  # update import if needed
 
 

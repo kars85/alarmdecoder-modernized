@@ -1,7 +1,8 @@
 import pytest
+
+from alarmdecoder.messages import ExpanderMessage
+from alarmdecoder.messages.panel_message import AdemcoCIDEvent, ADEMCOContactID, LRRMessage, PanelMessage
 from alarmdecoder.messages.parser import parse_message
-from alarmdecoder.messages.panel_message import PanelMessage, LRRMessage, ADEMCOContactID, AdemcoCIDEvent
-from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
 
 

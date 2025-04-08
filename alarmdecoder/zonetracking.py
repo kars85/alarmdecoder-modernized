@@ -69,6 +69,8 @@ class Zone:
         Human readable representation operator.
         """
         return f'Zone({self.zone}, {Zone.STATUS[self.status]}, ts {self.timestamp})'
+
+
 class Zonetracker:
     """
     Handles tracking of zones and their statuses.
@@ -329,7 +331,7 @@ class Zonetracker:
         :param status: zone status
         :type status: int
         """
-        if not zone in self._zones:
+        if self._zones not in zone:
             self._zones[zone] = Zone(zone=zone, name=name, status=None, expander=expander)
 
         self._update_zone(zone, status=status)
@@ -345,7 +347,7 @@ class Zonetracker:
 
         :raises: IndexError
         """
-        if not zone in self._zones:
+        if self._zones not in zone:
             raise IndexError('Zone does not exist and cannot be updated: %d', zone)
 
         old_status = self._zones[zone].status

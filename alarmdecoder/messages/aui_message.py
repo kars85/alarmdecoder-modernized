@@ -9,10 +9,10 @@ devices.
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
 
+
+from alarmdecoder.logger import get_logger
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.logger import get_logger
-from typing import Optional, Dict
 
 # Initialize the logger
 logger = get_logger(__name__)
@@ -23,13 +23,13 @@ class AUIMessage(BaseMessage):
     Represents a message destined for an AUI keypad.
     """
 
-    value: Optional[str] = None  # Raw value of the AUI message
-    aui_id: Optional[str] = None  # AUI ID
-    msg_type: Optional[str] = None  # Message type
-    line: Optional[str] = None  # Line number
-    text: Optional[str] = None  # Message text
+    value: str | None = None  # Raw value of the AUI message
+    aui_id: str | None = None  # AUI ID
+    msg_type: str | None = None  # Message type
+    line: str | None = None  # Line number
+    text: str | None = None  # Message text
 
-    def __init__(self, data: Optional[str] = None):
+    def __init__(self, data: str | None = None):
         """
         Constructor for AUIMessage.
 
@@ -82,7 +82,7 @@ class AUIMessage(BaseMessage):
                 f"Unable to parse AUI message. Invalid data: {data}"
             ) from e
 
-    def dict(self) -> Dict[str, Optional[str]]:
+    def dict(self) -> dict[str, str | None]:
         """
         Returns the AUIMessage as a dictionary.
 

@@ -9,50 +9,63 @@ SSL if using `ser2sock`_.
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
 # Need to add imports at the top
-import time
+import logging
 import os
-import threading
-import socket
 import select
-import logging # Import logging
-from typing import Union, Optional, Tuple # Import typing helpers
+import socket
+import time
+from typing import cast
+
+from OpenSSL.SSL import Connection
 
 from alarmdecoder.devices.base_device import Device
+
 # Ensure these specific exceptions are importable or defined correctly
-from alarmdecoder.util import CommError, TimeoutError, NoDeviceError
+from alarmdecoder.util.exceptions import CommError, NoDeviceError, TimeoutError
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
 
-# --- SSL Import Section (Keep as is, defines OpenSSL_SSL and have_openssl) ---
+# --- SSL Import Section (Defines OpenSSL_SSL, crypto, and have_openssl) ---
 try:
-    # Import SSL from OpenSSL with an alias to avoid redefinition
-    from OpenSSL import SSL as OpenSSL_SSL, crypto
+    from OpenSSL import crypto
     have_openssl = True
 
-    # If you need another SSL module, use a different alias
-    # import SomeOtherSSL as SocketSSL
 except ImportError:
-    # Keep the dummy class for now if other code relies on it when have_openssl is False,
-    # but be aware it's limited.
-    class SSL: # type: ignore # Ignore potential redefinition/type issues
-        class Error(BaseException):
+    # Dummy fallback for OpenSSL SSL interface
+    class DummyOpenSSLSSL:
+        class Error(Exception):
             pass
-        class WantReadError(BaseException):
-            pass
-        class SysCallError(BaseException):
-             def __init__(self, errno, msg): # Add basic init for unpacking
-                 self.args = (errno, msg)
 
-        # Dummy constants if needed by other non-functional parts
+        class WantReadError(Exception):
+            pass
+
+        class SysCallError(Exception):
+            pass
+
         TLSv1_METHOD = None
         VERIFY_PEER = None
         VERIFY_NONE = None
-        class Context: pass
-        class Connection: pass
 
+        class Context:
+            pass
+
+        class Connection:
+            pass
+
+    # Dummy fallback for OpenSSL crypto interface
+    class DummyCrypto:
+        class PKey:
+            pass
+
+        class X509:
+            pass
+
+    OpenSSL_SSL = DummyOpenSSLSSL
+    crypto = DummyCrypto
     have_openssl = False
 # --- End SSL Import Section ---
+
 
 
 class SocketDevice(Device):
@@ -79,7 +92,7 @@ class SocketDevice(Device):
         self._ssl_ca = None
         self._ssl_allow_self_signed = False
         # Initialize _device to None before open
-        self._device: Optional[socket.socket | OpenSSL_SSL.Connection] = None
+        self._device: socket.socket | OpenSSL_SSL.Connection | None = None
 
     # ... (open, close, fileno remain mostly the same, ensure _init_ssl uses OpenSSL_SSL) ...
     def open(self, baudrate=None, no_reader_thread=False):
@@ -106,32 +119,35 @@ class SocketDevice(Device):
 
             if self._use_ssl:
                 logger.info("Initializing SSL...")
-                self._device = self._init_ssl(_sock) # Pass the raw socket
+                self._device = self._init_ssl(_sock)  # Pass the raw socket
                 logger.info("Performing SSL handshake...")
+
+                ssl_conn = cast(Connection, self._device)  # Explicitly cast to fix PyCharm error
+
                 while True:
                     try:
-                        self._device.do_handshake()
+                        ssl_conn.do_handshake()
                         logger.info("SSL handshake successful.")
                         break
-                    except OpenSSL_SSL.WantReadError: # Use correct alias
-                        # select() or other mechanism might be needed here in a real non-blocking scenario
-                        # For blocking, this loop might just spin; consider adding select or short sleep
+                    except OpenSSL_SSL.WantReadError:
                         logger.debug("SSL WantRead during handshake, retrying...")
-                        select.select([self._device], [self._device], [], 0.1) # Wait briefly
+                        select.select([ssl_conn], [ssl_conn], [], 0.1)
                     # Also consider WantWriteError if needed
             else:
-                self._device = _sock # Assign the raw socket
+                self._device = _sock  # Assign the raw socket
 
-            self._id = '{0}:{1}'.format(self._host, self._port)
+            self._id = f'{self._host}:{self._port}'
             logger.info("Device opened successfully: %s", self._id)
 
-        except socket.error as err:
+        except OSError as err:
             logger.error("Failed to open socket device at %s:%d - %s", self._host, self._port, err, exc_info=True)
-            if _sock: _sock.close() # Clean up socket if connection failed partially
+            if _sock:
+                _sock.close()  # Clean up socket if connection failed partially
             raise NoDeviceError(f'Error opening device at {self._host}:{self._port}: {err}') from err
-        except Exception as err: # Catch other potential errors (e.g., SSL setup)
+        except Exception as err:  # Catch other potential errors (e.g., SSL setup)
              logger.error("Failed to open/setup device at %s:%d - %s", self._host, self._port, err, exc_info=True)
-             if _sock and not self._device: _sock.close() # Clean up raw socket if SSL failed
+             if _sock and not self._device:
+                 _sock.close()  # Clean up raw socket if SSL failed
              # Wrap generic errors too
              raise CommError(f"Failed to setup device: {err}") from err
         else:
@@ -144,7 +160,7 @@ class SocketDevice(Device):
 
         return self
 
-    def write(self, data: Union[str, bytes]) -> int:
+    def write(self, data: str | bytes) -> int:
         """
         Writes data to the device.
 
@@ -157,11 +173,11 @@ class SocketDevice(Device):
         if self._device is None:
              raise CommError("Device not open.")
 
-        data_sent: Optional[int] = None
+        data_sent: int | None = None
         encoded_data: bytes
 
         # Define exceptions to catch based on OpenSSL availability
-        comm_exceptions_to_catch: Tuple[type[Exception], ...] = (socket.error,)
+        comm_exceptions_to_catch: tuple[type[Exception], ...] = (socket.error,)
         if have_openssl:
             comm_exceptions_to_catch += (OpenSSL_SSL.Error,)
 
@@ -215,7 +231,7 @@ class SocketDevice(Device):
         data = b'' # Read bytes
 
         # Define communication exceptions
-        comm_exceptions_to_catch: Tuple[type[Exception], ...] = (socket.error,)
+        comm_exceptions_to_catch: tuple[type[Exception], ...] = (socket.error,)
         ssl_specific_exceptions = ()
         if have_openssl:
             # OpenSSL might raise WantReadError/WantWriteError during recv/send
@@ -304,7 +320,7 @@ class SocketDevice(Device):
         ret = b''
 
         # Define communication exceptions
-        comm_exceptions_to_catch: Tuple[type[Exception], ...] = (socket.error,)
+        comm_exceptions_to_catch: tuple[type[Exception], ...] = (socket.error,)
         ssl_specific_exceptions = ()
         if have_openssl:
             comm_exceptions_to_catch += (OpenSSL_SSL.Error,)
@@ -334,42 +350,36 @@ class SocketDevice(Device):
 
                 # Data is ready, read a chunk
                 try:
-                     # Read a larger chunk for efficiency
-                     chunk = self._device.recv(128)
-                     if chunk == b'':
-                          logger.warning("Device %s closed connection during read_line.", self._id)
-                          raise CommError("Connection closed by peer.")
+                    chunk = self._device.recv(128)
+                    if chunk == b'':
+                        logger.warning("Device %s closed connection during read_line.", self._id)
+                        raise CommError("Connection closed by peer.")
 
-                     logger.debug("Read chunk: %r", chunk)
-                     self._buffer += chunk
-
-                     # Check for newline in the updated buffer
-                     try:
-                          line_end = self._buffer.index(b"\n")
-                          ret = self._buffer[:line_end].rstrip(b"\r")
-                          self._buffer = self._buffer[line_end+1:]
-                          got_line = True
-                          break # Exit the while loop
-                     except ValueError:
-                          continue # No newline yet, continue reading
+                    logger.debug("Read chunk: %r", chunk)
+                    self._buffer += chunk
+                    try:
+                        line_end = self._buffer.index(b"\n")
+                        ret = self._buffer[:line_end].rstrip(b"\r")
+                        self._buffer = self._buffer[line_end+1:]
+                        got_line = True
+                        break
+                    except ValueError:
+                        continue # No newline yet, continue reading
 
                 except ssl_specific_exceptions as ssl_err:
-                     # Specifically handle WantReadError and SysCallError during recv
-                     if isinstance(ssl_err, OpenSSL_SSL.WantReadError):
-                          logger.debug("SSL WantRead during read_line chunk.")
-                          # Continue loop after select indicated readability, maybe need more data
-                          continue
-                     else: # SysCallError
-                         errno, msg = ssl_err.args
-                         logger.error("SSL SysCallError during read_line on %s: %s (%d)", self._id, msg, errno, exc_info=True)
-                         raise CommError(f'SSL syscall error while reading from device: {msg} ({errno})') from ssl_err
-
-
+                    if isinstance(ssl_err, OpenSSL_SSL.WantReadError):
+                        logger.debug("SSL WantRead during read_line chunk.")
+                        # Continue loop after select indicated readability, maybe need more data
+                        continue
+                    else:
+                        errno, msg = ssl_err.args
+                        logger.error("SSL SysCallError during read_line on %s: %s (%d)", self._id, msg, errno, exc_info=True)
+                        raise CommError(f'SSL syscall error while reading from device: {msg} ({errno})') from ssl_err
         except comm_exceptions_to_catch as err:
             logger.error("Communication error during read_line on %s.", self._id, exc_info=True)
             raise CommError(f'Error reading from device: {str(err)}') from err
         except TimeoutError:
-             raise # Re-raise timeout explicitly caught logic
+            raise # Re-raise timeout explicitly caught logic
         except Exception as general_err:
             logger.error("Unexpected error during read_line operation on %s.", self._id, exc_info=True)
             raise CommError(f'Unexpected error reading line from device: {general_err}') from general_err
@@ -383,7 +393,6 @@ class SocketDevice(Device):
         else:
             # Should be unreachable if timeout logic is correct, but safeguard
             raise TimeoutError('Timeout while waiting for line terminator (end of function).')
-
 
     # ... (purge remains the same) ...
 
@@ -401,21 +410,21 @@ class SocketDevice(Device):
 
         try:
             # Use the correct alias OpenSSL_SSL
-            ctx = OpenSSL_SSL.Context(OpenSSL_SSL.TLSv1_METHOD) # Or newer TLS method if appropriate
+            ctx = OpenSSL_SSL.Context(OpenSSL_SSL.TLSv1_METHOD)   # type: ignore[arg-type] # Or newer TLS method if appropriate
 
             if self.ssl_key:
                 logger.debug("Loading SSL private key: %s", self.ssl_key if isinstance(self.ssl_key, str) else "PKey object")
                 if isinstance(self.ssl_key, crypto.PKey):
-                    ctx.use_privatekey(self.ssl_key)
+                    ctx.use_privatekey(self.ssl_key)  # type: ignore[attr-defined]
                 else:
-                    ctx.use_privatekey_file(self.ssl_key)
+                    ctx.use_privatekey_file(self.ssl_key)  # type: ignore[attr-defined]
 
             if self.ssl_certificate:
                 logger.debug("Loading SSL certificate: %s", self.ssl_certificate if isinstance(self.ssl_certificate, str) else "X509 object")
                 if isinstance(self.ssl_certificate, crypto.X509):
-                    ctx.use_certificate(self.ssl_certificate)
+                    ctx.use_certificate(self.ssl_certificate)  # type: ignore[attr-defined]
                 else:
-                    ctx.use_certificate_file(self.ssl_certificate)
+                    ctx.use_certificate_file(self.ssl_certificate)  # type: ignore[attr-defined]
 
             # CA Verification setup
             verify_method = OpenSSL_SSL.VERIFY_PEER
@@ -423,9 +432,7 @@ class SocketDevice(Device):
                 logger.warning("Allowing self-signed SSL certificates (VERIFY_NONE).")
                 verify_method = OpenSSL_SSL.VERIFY_NONE
             else:
-                 logger.debug("Setting SSL verify mode to VERIFY_PEER.")
-
-
+                logger.debug("Setting SSL verify mode to VERIFY_PEER.")
             if self.ssl_ca:
                 logger.debug("Loading SSL CA certificate(s): %s", self.ssl_ca if isinstance(self.ssl_ca, str) else "X509 object")
                 # load_verify_locations can handle a file or directory path
@@ -433,38 +440,35 @@ class SocketDevice(Device):
                 ca_file = ca_path if ca_path and os.path.isfile(ca_path) else None # Need import os
                 ca_dir = ca_path if ca_path and os.path.isdir(ca_path) else None
                 if ca_file or ca_dir:
-                     ctx.load_verify_locations(ca_file, ca_dir)
+                    ctx.load_verify_locations(ca_file, ca_dir)  # type: ignore[attr-defined]
                 elif isinstance(self.ssl_ca, crypto.X509):
-                     store = ctx.get_cert_store()
-                     store.add_cert(self.ssl_ca)
+                    store = ctx.get_cert_store()  # type: ignore[attr-defined]
+                    store.add_cert(self.ssl_ca)
                 else:
-                     logger.warning("SSL CA certificate path/object is invalid: %s", self.ssl_ca)
-                     # Decide if this is an error or just proceed without custom CA
-                     # raise CommError("Invalid SSL CA certificate provided.")
+                    logger.warning("SSL CA certificate path/object is invalid: %s", self.ssl_ca)
+                    # Decide if this is an error or just proceed without custom CA
+                    # raise CommError("Invalid SSL CA certificate provided.")
 
             # Only set verify if not allowing self-signed OR if a CA is explicitly provided
             if verify_method == OpenSSL_SSL.VERIFY_PEER:
-                 ctx.set_verify(verify_method, self._verify_ssl_callback)
+                ctx.set_verify(verify_method, self._verify_ssl_callback)  # type: ignore[attr-defined]
             elif self._ssl_allow_self_signed:
-                 # If allowing self-signed, still use VERIFY_NONE but callback might not be needed?
-                 # PyOpenSSL docs suggest VERIFY_NONE means callback is not called for cert errors.
-                 ctx.set_verify(OpenSSL_SSL.VERIFY_NONE, lambda conn, cert, errno, depth, ok: True) # Dummy callback if needed
-
+                # If allowing self-signed, still use VERIFY_NONE but callback might not be needed?
+                # PyOpenSSL docs suggest VERIFY_NONE means callback is not called for cert errors.
+                ctx.set_verify(OpenSSL_SSL.VERIFY_NONE, lambda conn, cert, errno, depth, ok: True)  # type: ignore[attr-defined]
 
             logger.debug("Creating SSL connection object.")
             # Wrap the provided socket
-            ssl_conn = OpenSSL_SSL.Connection(ctx, sock)
-            ssl_conn.set_connect_state() # Set to client mode
+            ssl_conn = OpenSSL_SSL.Connection(ctx, sock)  # type: ignore[arg-type]
+            ssl_conn.set_connect_state()  # type: ignore[attr-defined]
             return ssl_conn
 
-
-        except OpenSSL_SSL.Error as err: # Use correct alias
+        except OpenSSL_SSL.Error as err:  # Use correct alias
             logger.error("Failed to configure SSL context.", exc_info=True)
             raise CommError('Error setting up SSL connection.', err) from err
-        except Exception as err: # Catch other errors like file not found
+        except Exception as err:  # Catch other errors like file not found
             logger.error("Unexpected error during SSL initialization.", exc_info=True)
             raise CommError(f'Error setting up SSL connection: {err}') from err
-
 
     def _verify_ssl_callback(self, connection, x509, errnum, errdepth, ok):
         """
@@ -474,22 +478,22 @@ class SocketDevice(Device):
         # The actual acceptance/rejection is often based on the errnum/ok status
         # and the VERIFY_ flags set on the context.
         if not ok:
-             cert_subject = x509.get_subject()
-             cert_issuer = x509.get_issuer()
-             logger.warning(
-                 "SSL Certificate Verification Error: errnum=%s, errdepth=%s, subject=%s, issuer=%s",
-                 errnum, errdepth, cert_subject, cert_issuer
-             )
-             # If VERIFY_PEER is set, returning False here (or just letting ok=False pass)
-             # will cause the handshake to fail. If VERIFY_NONE, this might still be called
-             # but returning False might not matter. Check pyOpenSSL docs for specifics.
+            cert_subject = x509.get_subject()
+            cert_issuer = x509.get_issuer()
+            logger.warning(
+            "SSL Certificate Verification Error: errnum=%s, errdepth=%s, subject=%s, issuer=%s",
+            errnum, errdepth, cert_subject, cert_issuer
+            )
+            # If VERIFY_PEER is set, returning False here (or just letting ok=False pass)
+            # will cause the handshake to fail. If VERIFY_NONE, this might still be called
+            # but returning False might not matter. Check pyOpenSSL docs for specifics.
 
         # Return ok to accept based on default verification, or implement custom logic.
         # If self._ssl_allow_self_signed, we probably want to return True regardless of 'ok'
         # if the error is related to self-signed certs (needs specific errnum check).
         # However, setting VERIFY_NONE might be sufficient.
         # For simplicity now, just return ok.
-        return ok
+            return ok
 
     @property
     def ssl_key(self):

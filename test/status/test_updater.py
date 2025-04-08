@@ -1,6 +1,7 @@
-import pytest
 from unittest.mock import MagicMock
+
 from alarmdecoder.status import updater
+
 
 class MockDevice:
     def __init__(self):

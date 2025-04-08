@@ -1,11 +1,11 @@
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
+from unittest.mock import Mock
 
 from alarmdecoder import AlarmDecoder
-from alarmdecoder.panels import ADEMCO
-from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.messages import ExpanderMessage
-from alarmdecoder.zonetracking import Zonetracker, Zone
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.panels import ADEMCO
+from alarmdecoder.zonetracking import Zone, Zonetracker
 
 
 class TestZonetracking(TestCase):

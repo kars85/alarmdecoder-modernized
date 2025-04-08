@@ -4,3 +4,4 @@ pytest~=8.3.5
 setuptools-scm~=8.2.0
 setuptools~=78.1.0
 packaging~=24.2
+pyOpenSSL ~= 25.0.0

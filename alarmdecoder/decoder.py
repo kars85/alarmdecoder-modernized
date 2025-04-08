@@ -1,23 +1,22 @@
 import logging
-from typing import Optional
+
 from alarmdecoder.event import event
-from alarmdecoder.event.wiring import wire_events, unwire_events
+from alarmdecoder.event.wiring import unwire_events, wire_events
 from alarmdecoder.logger import get_logger
-from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
-from alarmdecoder.messages.panel_message import (
-    PanelMessage,
-    LRRMessage
-)
+from alarmdecoder.messages import AUIMessage, ExpanderMessage, RFMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.messages.lrr.system import LRRSystem
+from alarmdecoder.messages.panel_message import LRRMessage, PanelMessage
 from alarmdecoder.panels import ADEMCO
 from alarmdecoder.status import updater
 from alarmdecoder.status.updater import (
     update_armed_ready_status,
 )
 from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.zonetracking import Zonetracker
-from alarmdecoder.messages.lrr.system import LRRSystem
+
 logger = get_logger(__name__)
+
 
 class AlarmDecoder:
     def _delegate_update(self, method, *args, **kwargs):
@@ -403,7 +402,7 @@ class AlarmDecoder:
         except InvalidMessageError:
             logger.warning("Invalid message received: %s", data)
 
-    def _handle_keypad_message(self, data: str) -> Optional[PanelMessage]:
+    def _handle_keypad_message(self, data: str) -> PanelMessage | None:
         """
         Handle keypad messages.
 

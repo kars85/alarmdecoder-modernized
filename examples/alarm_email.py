@@ -1,6 +1,7 @@
-import time
 import smtplib
+import time
 from email.mime.text import MIMEText
+
 from alarmdecoder import AlarmDecoder
 from alarmdecoder.devices import SerialDevice
 
@@ -39,7 +40,7 @@ def handle_alarm(sender, **kwargs):
     Handles alarm events from the AlarmDecoder.
     """
     zone = kwargs.pop('zone', None)
-    text = "Alarm: Zone {0}".format(zone)
+    text = f"Alarm: Zone {zone}"
 
     # Build the email message
     msg = MIMEText(text)

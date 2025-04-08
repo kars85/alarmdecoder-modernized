@@ -1,23 +1,23 @@
 from dataclasses import dataclass
-from typing import Optional
+
+from alarmdecoder.logger import get_logger
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 @dataclass(init=False)  # Disable auto-generated init
 class ExpanderMessage(BaseMessage):
-    address: Optional[int] = None
-    type: Optional[int] = None
-    channel: Optional[int] = None
-    value: Optional[int] = None
+    address: int | None = None
+    type: int | None = None
+    channel: int | None = None
+    value: int | None = None
 
     ZONE = 0
     RELAY = 1
 
-    def __init__(self, data: Optional[str] = None, address=None, type=None, channel=None, value=None):
+    def __init__(self, data: str | None = None, address=None, type=None, channel=None, value=None):
         super().__init__(data)
         self.address = address
         self.type = type

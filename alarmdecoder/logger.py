@@ -2,6 +2,7 @@
 import logging
 import os
 
+
 def get_logger(name=__name__) -> logging.Logger:
     logger = logging.getLogger(name)
     if not logger.handlers:

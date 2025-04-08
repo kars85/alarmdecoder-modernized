@@ -12,8 +12,7 @@ devices.
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
 
-
-from .events import LRR_EVENT_TYPE, get_event_description, get_event_data_type, get_event_source
+from .events import LRR_EVENT_TYPE, get_event_data_type, get_event_description, get_event_source
 
 
 class LRRMessage(BaseMessage):
@@ -94,24 +93,23 @@ class LRRMessage(BaseMessage):
                 self.event_data_type = get_event_data_type(self.event_source, self.event_code)
 
         except ValueError:
-            raise InvalidMessageError('Received invalid message: {0}'.format(data))
-
+            raise InvalidMessageError(f'Received invalid message: {data}')
 
     def dict(self, **kwargs):
         """
         Dictionary representation
         """
         return dict(
-            time                  = self.timestamp,
-            event_data            = self.event_data,
-            event_data_type       = self.event_data_type,
-            event_type            = self.event_type,
-            partition             = self.partition,
-            report_code           = self.report_code,
-            event_prefix          = self.event_prefix,
-            event_source          = self.event_source,
-            event_status          = self.event_status,
-            event_code            = hex(self.event_code),
-            event_description     = self.event_description,
+            time=self.timestamp,
+            event_data=self.event_data,
+            event_data_type=self.event_data_type,
+            event_type=self.event_type,
+            partition=self.partition,
+            report_code=self.report_code,
+            event_prefix=self.event_prefix,
+            event_source=self.event_source,
+            event_status=self.event_status,
+            event_code=hex(self.event_code),
+            event_description=self.event_description,
             **kwargs
         )

@@ -4,12 +4,22 @@ Primary system for handling LRR events.
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
 
-from .events import LRR_EVENT_TYPE, LRR_EVENT_STATUS, LRR_CID_EVENT, LRR_DATA_TYPE
-from .events import LRR_FIRE_EVENTS, LRR_POWER_EVENTS, LRR_BYPASS_EVENTS, LRR_BATTERY_EVENTS, \
-                    LRR_PANIC_EVENTS, LRR_ARM_EVENTS, LRR_STAY_EVENTS, LRR_ALARM_EVENTS
+from .events import (
+    LRR_ALARM_EVENTS,
+    LRR_ARM_EVENTS,
+    LRR_BATTERY_EVENTS,
+    LRR_BYPASS_EVENTS,
+    LRR_CID_EVENT,
+    LRR_EVENT_STATUS,
+    LRR_EVENT_TYPE,
+    LRR_FIRE_EVENTS,
+    LRR_PANIC_EVENTS,
+    LRR_POWER_EVENTS,
+    LRR_STAY_EVENTS,
+)
 
 
-class LRRSystem(object):
+class LRRSystem:
     """
     Handles LRR events and triggers higher-level events in the AlarmDecoder object.
     """
@@ -35,7 +45,7 @@ class LRRSystem(object):
         if message.version == 1:
             if message.event_type == 'ALARM_PANIC':
                 self._alarmdecoder._update_panic_status(True)
-                
+
             elif message.event_type == 'CANCEL':
                 self._alarmdecoder._update_panic_status(False)
 
@@ -71,7 +81,7 @@ class LRRSystem(object):
                 status = False
 
             self._alarmdecoder._update_fire_status(status=status)
-            
+
         if message.event_code in LRR_ALARM_EVENTS:
             kwargs = {}
             field_name = 'zone'
@@ -98,8 +108,7 @@ class LRRSystem(object):
 
         if message.event_code in LRR_ARM_EVENTS:
             # NOTE: status on OPENCLOSE messages is backwards.
-            status_stay = (message.event_status == LRR_EVENT_STATUS.RESTORE \
-                            and message.event_code in LRR_STAY_EVENTS)
+            status_stay = (message.event_status == LRR_EVENT_STATUS.RESTORE and message.event_code in LRR_STAY_EVENTS)
 
             if status_stay:
                 status = False

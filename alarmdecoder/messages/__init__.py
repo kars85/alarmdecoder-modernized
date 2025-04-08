@@ -1,11 +1,10 @@
-#from .base_message import Message
-#from .panel_message import Message
-from typing import Optional
+from .aui_message import AUIMessage
 from .expander_message import ExpanderMessage
 from .lrr import LRRMessage
 from .rf_message import RFMessage
-from .aui_message import AUIMessage
-def __init__(self, data: Optional[str] = None, address=None, type=None, channel=None, value=None):
+
+
+def __init__(self, data: str | None = None, address=None, type=None, channel=None, value=None):
     super().__init__(data)
     self.address = address
     self.type = type

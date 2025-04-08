@@ -1,20 +1,19 @@
 from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Optional, List
+
+from alarmdecoder.logger import get_logger
 from alarmdecoder.messages.base_message import BaseMessage
 from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 @dataclass
 class RFMessage(BaseMessage):
-    serial_number: Optional[str] = None
-    value: Optional[int] = None
-    battery: Optional[bool] = None
-    supervision: Optional[bool] = None
-    loop: List[bool] = field(default_factory=lambda: [False for _ in range(4)])
+    serial_number: str | None = None
+    value: int | None = None
+    battery: bool | None = None
+    supervision: bool | None = None
+    loop: list[bool] = field(default_factory=lambda: [False for _ in range(4)])
 
     def __post_init__(self):
         if self.raw:

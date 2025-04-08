@@ -1,17 +1,12 @@
 # alarmdecoder/messages/parser.py
 
-from typing import Optional
 import re
-from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.messages.panel_message import (
-    PanelMessage,
-    LRRMessage,
-    ADEMCOContactID,
-    AdemcoCIDEvent
-)
-from alarmdecoder.messages import ExpanderMessage, RFMessage, AUIMessage
-from alarmdecoder.messages.base_message import BaseMessage
+
 from alarmdecoder.logger import get_logger
+from alarmdecoder.messages import AUIMessage, ExpanderMessage, RFMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.messages.panel_message import AdemcoCIDEvent, ADEMCOContactID, LRRMessage, PanelMessage
+from alarmdecoder.util.exceptions import InvalidMessageError
 
 logger = get_logger(__name__)
 
@@ -24,26 +19,26 @@ def parse_message(data: str) -> BaseMessage:
 
     try:
         if data.startswith("!AUI:"):
-            logger.debug(f"Identified as AUI message")
+            logger.debug("Identified as AUI message")
             return parse_aui(data)
         elif data.startswith("!EXP:"):
-            logger.debug(f"Identified as expander message")
+            logger.debug("Identified as expander message")
             return parse_expander(data)
         elif data.startswith("!RFX:"):
-            logger.debug(f"Identified as RF message")
+            logger.debug("Identified as RF message")
             return parse_rf(data)
         elif data.startswith("!CID:"):
-            logger.debug(f"Identified as ADEMCO CID message")
+            logger.debug("Identified as ADEMCO CID message")
             return parse_ademco_cid(data)
         elif data.startswith("!LRR:"):
-            logger.debug(f"Identified as LRR message")
+            logger.debug("Identified as LRR message")
             return parse_lrr(data)
         elif data.startswith("!"):
-            logger.debug(f"Identified as panel message")
+            logger.debug("Identified as panel message")
             return parse_panel(data)
         else:
             raise InvalidMessageError(f"Unknown message format: {data}")
-    except Exception as e:
+    except Exception:
         logger.warning(f"Failed to parse message: {data}", exc_info=True)
         raise
 
@@ -218,7 +213,6 @@ def parse_aui(data: str) -> AUIMessage:
         msg_type = parts[1]
         line = parts[2]
         text1 = parts[3] if len(parts) > 3 else ""
-        text2 = parts[4] if len(parts) > 4 else ""
 
         message = AUIMessage(data)
         message.aui_id = aui_id

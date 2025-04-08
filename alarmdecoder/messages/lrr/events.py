@@ -3,7 +3,8 @@ Constants and utility functions used for LRR event handling.
 
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
-from typing import Union, Any
+from typing import Any
+
 
 def get_event_description(event_type: int, event_code: int) -> str:
     """
@@ -29,6 +30,7 @@ def get_event_description(event_type: int, event_code: int) -> str:
             description = result
     return description
 
+
 def get_event_data_type(event_type: int, event_code: int) -> str:
     """
     Retrieves the human-readable data type for the LRR event.
@@ -53,7 +55,8 @@ def get_event_data_type(event_type: int, event_code: int) -> str:
             dtype = result
     return dtype
 
-def get_event_source(prefix): 
+
+def get_event_source(prefix):
     """
     Retrieves the LRR_EVENT_TYPE corresponding to the prefix provided.abs
 
@@ -94,12 +97,14 @@ class LRR_EVENT_STATUS:
     TRIGGER = 1
     RESTORE = 3
 
+
 class LRR_DATA_TYPE:
     """
     LRR Data type for the event
     """
     ZONE = 'Z'
     USER = 'U'
+
 
 class LRR_CID_EVENT:
     """
@@ -308,8 +313,7 @@ class LRR_CID_EVENT:
     STATUS_PANIC_ALARM_RESET = 0x465
     ACCESS_SERVICE_ONOFF_PREMISES = 0x466
     # 467-469: ?
-    OPENCLOSE_PARTIAL_CLOSING = 0x470   # HACK: This is from our DSC firmware implementation, 
-                                        #       and is named far too closely to 0x480.
+    OPENCLOSE_PARTIAL_CLOSING = 0x470   # HACK: This is from our DSC firmware and is named far too closely to 0x480.
     # 471-479: ?
     OPENCLOSE_PARTIAL_CLOSE = 0x480
     # 481-500: ?

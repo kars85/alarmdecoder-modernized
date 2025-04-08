@@ -1,11 +1,10 @@
 # alarmdecoder/messages/panel_message.py
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Optional
 
-from alarmdecoder.messages.base_message import BaseMessage
-from alarmdecoder.util.exceptions import InvalidMessageError
 from alarmdecoder.logger import get_logger
+from alarmdecoder.messages.base_message import BaseMessage
+
 logger = get_logger(__name__)
 
 
@@ -14,7 +13,7 @@ class PanelMessage(BaseMessage):
     """
     A general panel message with possible extensions.
     """
-    text: Optional[str] = None
+    text: str | None = None
     alarm_event_occurred: bool = False
     alarm_sounding: bool = False
     ready: bool = False
@@ -29,11 +28,11 @@ class PanelMessage(BaseMessage):
     programming_mode: bool = False
     system_fault: bool = False
     zone_bypassed: bool = False
-    numeric_code: Optional[str] = None
-    mask: Optional[int] = None
-    beeps: Optional[int] = None
-    cursor_location: Optional[int] = None
-    panel_type: Optional[str] = None
+    numeric_code: str | None = None
+    mask: int | None = None
+    beeps: int | None = None
+    cursor_location: int | None = None
+    panel_type: str | None = None
 
     def dict(self) -> dict:
         base = super().dict()
@@ -46,9 +45,9 @@ class LRRMessage(BaseMessage):
     """
     Represents an LRR (Long Range Radio) message.
     """
-    event_type: Optional[str] = None
-    partition: Optional[str] = None
-    timestamp: Optional[datetime] = None
+    event_type: str | None = None
+    partition: str | None = None
+    timestamp: datetime | None = None
 
     def dict(self):
         base = super().dict()
@@ -77,7 +76,7 @@ class ADEMCOContactID(LRRMessage):
     """
     Specialized LRR message for ADEMCO Contact ID format.
     """
-    event: Optional[AdemcoCIDEvent] = None
+    event: AdemcoCIDEvent | None = None
 
     def dict(self):
         base = super().dict()

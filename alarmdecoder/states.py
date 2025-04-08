@@ -1,5 +1,6 @@
 from enum import IntEnum
 
+
 class FireState(IntEnum):
     """
     Fire alarm status

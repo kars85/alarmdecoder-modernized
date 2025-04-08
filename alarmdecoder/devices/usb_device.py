@@ -6,26 +6,27 @@ This module contains the :py:class:`USBDevice` interface for the `AD2USB`_.
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
 
-import time
 import threading
+import time
+from typing import Any
+
 from alarmdecoder.devices.base_device import Device
-from alarmdecoder.util import CommError, TimeoutError, NoDeviceError
-from alarmdecoder.util.io import bytes_hack
 from alarmdecoder.event import event
-from typing import List, Any
+from alarmdecoder.util import CommError, NoDeviceError, TimeoutError
+from alarmdecoder.util.io import bytes_hack
 
 have_pyftdi = False
 try:
-    from pyftdi.pyftdi.ftdi import Ftdi, FtdiError  # type: ignore
     import usb.core  # type: ignore
     import usb.util  # type: ignore
+    from pyftdi.pyftdi.ftdi import Ftdi, FtdiError  # type: ignore
 
     have_pyftdi = True
 except ImportError:
     try:
-        from pyftdi.ftdi import Ftdi, FtdiError  # type: ignore
         import usb.core  # type: ignore
         import usb.util  # type: ignore
+        from pyftdi.ftdi import Ftdi, FtdiError  # type: ignore
 
         have_pyftdi = True
     except ImportError:
@@ -54,7 +55,7 @@ class USBDevice(Device):
     BAUDRATE = 115200
     """Default baudrate for `AD2USB`_ devices."""
 
-    __devices: List[Any] = []
+    __devices: list[Any] = []
     __detect_thread = None
 
     @classmethod
@@ -78,7 +79,7 @@ class USBDevice(Device):
             cls.__devices = Ftdi.find_all(query, nocache=True)
 
         except (usb.core.USBError, FtdiError) as err:
-            raise CommError('Error enumerating AD2USB devices: {0}'.format(str(err)), err)
+            raise CommError(f'Error enumerating AD2USB devices: {str(err)}', err)
 
         return cls.__devices
 
@@ -285,12 +286,11 @@ class USBDevice(Device):
             self._id = self._serial_number
 
         except (usb.core.USBError, FtdiError) as err:
-            raise NoDeviceError('Error opening device: {0}'.format(str(err)), err)
+            raise NoDeviceError(f'Error opening device: {str(err)}', err)
 
         except KeyError as err:
             raise NoDeviceError(
-                'Unsupported device. ({0:04x}:{1:04x})  You probably need a newer version of pyftdi.'.format(err[0][0],
-                                                                                                             err[0][1]))
+                f'Unsupported device. ({err[0][0]:04x}:{err[0][1]:04x})  You probably need a newer version of pyftdi.')
 
         else:
             self._running = True
@@ -337,7 +337,7 @@ class USBDevice(Device):
             self.on_write(data=data)
 
         except FtdiError as err:
-            raise CommError('Error writing to device: {0}'.format(str(err)), err)
+            raise CommError(f'Error writing to device: {str(err)}', err)
 
     def read(self):
         """
@@ -352,7 +352,7 @@ class USBDevice(Device):
             ret = self._device.read_data(1)
 
         except (usb.core.USBError, FtdiError) as err:
-            raise CommError('Error reading from device: {0}'.format(str(err)), err)
+            raise CommError(f'Error reading from device: {str(err)}', err)
 
         return ret
 
@@ -404,7 +404,7 @@ class USBDevice(Device):
                     time.sleep(0.01)
 
         except (usb.core.USBError, FtdiError) as err:
-            raise CommError('Error reading from device: {0}'.format(str(err)), err)
+            raise CommError(f'Error reading from device: {str(err)}', err)
 
         else:
             if got_line:

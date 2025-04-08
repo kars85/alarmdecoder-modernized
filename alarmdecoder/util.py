@@ -6,29 +6,12 @@ Provides utility classes for the `AlarmDecoder`_ (AD2) devices.
 .. moduleauthor:: Scott Petersen <scott@nutech.com>
 """
 
+import select
 import time
 
-import select
-
 import alarmdecoder
-
 from alarmdecoder.util.io import bytes_available, read_firmware_file
 
-"""
-Provides utility classes for the `AlarmDecoder`_ (AD2) devices.
-
-.. _AlarmDecoder: http://www.alarmdecoder.com
-
-.. moduleauthor:: Scott Petersen <scott@nutech.com>
-"""
-
-import time
-
-import select
-
-import alarmdecoder
-
-from alarmdecoder.util.io import bytes_available, read_firmware_file
 
 class NoDeviceError(Exception):
     """
@@ -136,7 +119,7 @@ class Firmware:
         # Read firmware file into memory
         try:
             write_queue = read_firmware_file(file_path)
-        except IOError as err:
+        except OSError as err:
             stage = progress_stage(Firmware.STAGE_ERROR, error=str(err))
             return
 
@@ -212,7 +195,7 @@ class Firmware:
 
                     # Upload firmware
                     elif stage == Firmware.STAGE_UPLOADING:
-                        if len(write_queue) > 0 and got_response == True:
+                        if len(write_queue) > 0 and got_response:
                             got_response = False
                             device.write(write_queue.popleft())
 

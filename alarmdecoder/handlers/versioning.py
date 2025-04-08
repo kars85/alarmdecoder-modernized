@@ -1,7 +1,7 @@
 # alarmdecoder/handlers/versioning.py
+from alarmdecoder.logger import get_logger
 from alarmdecoder.messages.parser import parse_message
 from alarmdecoder.util.exceptions import InvalidMessageError
-from alarmdecoder.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -76,7 +76,7 @@ def handle_on_read(decoder, data, *args, **kwargs):
     try:
         message = parse_message(data)
         decoder._handle_message(message)
-    except InvalidMessageError as err:
+    except InvalidMessageError:
         decoder.logger.warning("Invalid message received: %s", data)
     except Exception as err:
         decoder.logger.exception("Unexpected error in _on_read: %s", err)

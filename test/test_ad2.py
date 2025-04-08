@@ -1,20 +1,13 @@
 import time
-
-from builtins import bytes
-
 from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
-
+from unittest.mock import Mock, patch
 
 from alarmdecoder.decoder import AlarmDecoder
 from alarmdecoder.devices import USBDevice
-from alarmdecoder.messages.base_message import BaseMessage
-from alarmdecoder.messages import RFMessage, LRRMessage, ExpanderMessage
 from alarmdecoder.event.event import Event, EventHandler
-from alarmdecoder.zonetracking import Zonetracker
-from alarmdecoder.panels import ADEMCO, DSC
-from alarmdecoder.messages.lrr import LRR_EVENT_TYPE, LRR_EVENT_STATUS
-from alarmdecoder.states import FireState
+from alarmdecoder.messages import ExpanderMessage, LRRMessage, RFMessage
+from alarmdecoder.messages.base_message import BaseMessage
+from alarmdecoder.panels import ADEMCO
 
 
 class TestAlarmDecoder(TestCase):
@@ -168,15 +161,15 @@ class TestAlarmDecoder(TestCase):
 
     def test_fault(self):
         self._decoder.fault_zone(1)
-        self._device.write.assert_called_with(bytes("L{0:02}{1}\r".format(1, 1), 'utf-8'))
+        self._device.write.assert_called_with(bytes(f"L{1:02}{1}\r", 'utf-8'))
 
     def test_fault_wireproblem(self):
         self._decoder.fault_zone(1, simulate_wire_problem=True)
-        self._device.write.assert_called_with(bytes("L{0:02}{1}\r".format(1, 2), 'utf-8'))
+        self._device.write.assert_called_with(bytes(f"L{1:02}{2}\r", 'utf-8'))
 
     def test_clear_zone(self):
         self._decoder.clear_zone(1)
-        self._device.write.assert_called_with(bytes("L{0:02}0\r".format(1), 'utf-8'))
+        self._device.write.assert_called_with(bytes(f"L{1:02}0\r", 'utf-8'))
 
     def test_message(self):
         msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
@@ -230,100 +223,100 @@ class TestAlarmDecoder(TestCase):
         self.assertFalse(self._panicked)
 
     def test_config_message(self):
-        msg = self._decoder._handle_message(b'!CONFIG>MODE=A&CONFIGBITS=ff04&ADDRESS=18&LRR=N&COM=N&EXP=NNNNN&REL=NNNN&MASK=ffffffff&DEDUPLICATE=N')
-        self.assertEquals(self._decoder.mode, ADEMCO)
-        self.assertEquals(self._decoder.address, 18)
-        self.assertEquals(self._decoder.configbits, int('ff04', 16))
-        self.assertEquals(self._decoder.address_mask, int('ffffffff', 16))
-        self.assertEquals(self._decoder.emulate_zone, [False for x in range(5)])
-        self.assertEquals(self._decoder.emulate_relay, [False for x in range(4)])
+        self._decoder._handle_message(b'!CONFIG>MODE=A&CONFIGBITS=ff04&ADDRESS=18&LRR=N&COM=N&EXP=NNNNN&REL=NNNN&MASK=ffffffff&DEDUPLICATE=N')
+        self.assertEqual(self._decoder.mode, ADEMCO)
+        self.assertEqual(self._decoder.address, 18)
+        self.assertEqual(self._decoder.configbits, int('ff04', 16))
+        self.assertEqual(self._decoder.address_mask, int('ffffffff', 16))
+        self.assertEqual(self._decoder.emulate_zone, [False for x in range(5)])
+        self.assertEqual(self._decoder.emulate_relay, [False for x in range(4)])
         self.assertFalse(self._decoder.emulate_lrr)
         self.assertFalse(self._decoder.emulate_com)
         self.assertFalse(self._decoder.deduplicate)
         self.assertTrue(self._got_config)
 
     def test_power_changed_event(self):
-        msg = self._decoder._handle_message(b'[00000001000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000001000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._power_changed)   # Not set first time we hit it.
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._power_changed)
 
-        msg = self._decoder._handle_message(b'[00000001000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000001000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._power_changed)
 
     def test_ready_changed_event(self):
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._ready_changed)   # Not set first time we hit it.
 
-        msg = self._decoder._handle_message(b'[10000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[10000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._ready_changed)
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._ready_changed)
 
     def test_chime_changed_event(self):
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._chime_changed)   # Not set first time we hit it.
 
-        msg = self._decoder._handle_message(b'[00000000100000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000100000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._chime_changed)
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._chime_changed)
 
     def test_alarm_event(self):
-        msg = self._decoder._handle_message(b'[00000000001000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000001000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._alarmed)   # Not set first time we hit it.
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._alarmed)
         self.assertTrue(self._alarm_restored)
 
-        msg = self._decoder._handle_message(b'[00000000001000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000001000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._alarmed)
 
     def test_zone_bypassed_event(self):
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._bypassed)
 
-        msg = self._decoder._handle_message(b'[00000010000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000010000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._bypassed)
 
     def test_armed_away_event(self):
-        msg = self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._armed)   # Not set first time we hit it.
 
-        msg = self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._armed)
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._armed)
 
-        msg = self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[01000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._armed)
 
         self._armed = False
-        msg = self._decoder._handle_message(b'[00100000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00100000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._armed)
 
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._armed)
 
     def test_battery_low_event(self):
-        msg = self._decoder._handle_message(b'[00000000000100000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000100000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._battery)
 
         # force the timeout to expire.
         with patch.object(time, 'time', return_value=self._decoder._battery_status[1] + 35):
-            msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+            self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
             self.assertFalse(self._battery)
 
     def test_fire_alarm_event(self):
-        msg = self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000000000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertFalse(self._fire)   # Not set the first time we hit it.
 
-        msg = self._decoder._handle_message(b'[00000000000001000A--],000,[f707000600e5800c0c020000],"                                "')
+        self._decoder._handle_message(b'[00000000000001000A--],000,[f707000600e5800c0c020000],"                                "')
         self.assertTrue(self._fire)
 
     def test_fire_lrr(self):
@@ -356,15 +349,15 @@ class TestAlarmDecoder(TestCase):
 
     def test_zone_fault_and_restore(self):
         self._decoder._on_read(self, data=b'[00010001000000000A--],003,[f70000051003000008020000000000],"FAULT 03                        "')
-        self.assertEquals(self._zone_faulted, 3)
+        self.assertEqual(self._zone_faulted, 3)
 
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 04                        "')
-        self.assertEquals(self._zone_faulted, 4)
+        self.assertEqual(self._zone_faulted, 4)
 
         self._decoder._on_read(self, data=b'[00010001000000000A--],005,[f70000051003000008020000000000],"FAULT 05                        "')
-        self.assertEquals(self._zone_faulted, 5)
+        self.assertEqual(self._zone_faulted, 5)
 
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 04                        "')
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 05                        "')
         self._decoder._on_read(self, data=b'[00010001000000000A--],004,[f70000051003000008020000000000],"FAULT 04                        "')
-        self.assertEquals(self._zone_restored, 3)
+        self.assertEqual(self._zone_restored, 3)

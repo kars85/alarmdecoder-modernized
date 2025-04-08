@@ -5,11 +5,11 @@ Handles firmware uploads to AlarmDecoder devices.
 Implements Intel HEX parsing, bootloader interaction, and retry logic.
 """
 
-import time
 import logging
-from typing import Optional, Callable
+import time
+from collections.abc import Callable
 
-from alarmdecoder.util.exceptions import UploadError, UploadChecksumError, TimeoutError, NoDeviceError
+from alarmdecoder.util.exceptions import NoDeviceError, UploadChecksumError, UploadError
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class Firmware:
         device,
         firmware_path: str,
         debug: bool = False,
-        progress_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Callable[[str], None] | None = None,
     ) -> None:
         """
         Uploads firmware to the device using Intel HEX.
@@ -55,7 +55,7 @@ class Firmware:
             raise NoDeviceError("No device specified for firmware upload.")
 
         emit(cls.STAGE_LOAD)
-        with open(firmware_path, "r") as hexfile:
+        with open(firmware_path) as hexfile:
             hex_lines = [line.strip() for line in hexfile if line.startswith(":")]
 
         emit(cls.STAGE_BOOT)
@@ -78,7 +78,7 @@ class Firmware:
 
             if not response.startswith(b">"):
                 if line[7:9] == "01":
-                    raise UploadChecksumError("Checksum error in {}".format(firmware_path))
+                    raise UploadChecksumError(f"Checksum error in {firmware_path}")
                 raise UploadError("Incorrect data sent to bootloader.")
 
         emit(cls.STAGE_WAITING)

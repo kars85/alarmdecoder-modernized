@@ -39,3 +39,13 @@ pythonpath = [
   "." # Add the project root directory to the Python path
   # Add "src" here instead if your alarmdecoder package was inside a 'src' folder
 ]
+
+[tool.ruff]
+line-length = 200 # General setting - usually stays here
+fix = true # <-- Moved below
+unsafe-fixes = false # <-- Moved here
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+extend-select = ["I"] # <-- Moved here

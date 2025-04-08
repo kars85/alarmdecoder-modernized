@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
-from alarmdecoder.handlers.versioning import handle_version, handle_config
-from alarmdecoder.handlers.config_io import get_config_string, save_config, get_config
+
+from alarmdecoder.handlers.config_io import get_config, get_config_string, save_config
+from alarmdecoder.handlers.versioning import handle_config, handle_version
 
 
 def test_handle_version_sets_version_data():

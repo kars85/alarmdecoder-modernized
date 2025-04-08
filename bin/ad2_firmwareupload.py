@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import logging
 import sys
 import time
-import logging
 import traceback
-from alarmdecoder.util.firmware import Firmware
-from alarmdecoder.util.exceptions import UploadError, NoDeviceError
-from alarmdecoder.devices import SerialDevice, SocketDevice
 
+from alarmdecoder.devices import SerialDevice, SocketDevice
+from alarmdecoder.util.exceptions import NoDeviceError, UploadError
+from alarmdecoder.util.firmware import Firmware
 
 RETRIES = 3
 RETRY_DELAY = 3  # seconds

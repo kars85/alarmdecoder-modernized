@@ -1,6 +1,8 @@
 import time
+
 from alarmdecoder import AlarmDecoder
 from alarmdecoder.devices import USBDevice
+
 
 def main():
     """

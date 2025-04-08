@@ -1,19 +1,21 @@
-from unittest import TestCase
-from unittest.mock import Mock, MagicMock, patch
-from serial import Serial, SerialException
-import sys
-import socket
-import time
-import tempfile
 import os
 import select
-from alarmdecoder.devices import USBDevice, SerialDevice, SocketDevice
-from alarmdecoder.util.exceptions import NoDeviceError, CommError, TimeoutError
+import socket
+import tempfile
+import time
+from unittest import TestCase
+from unittest.mock import Mock, patch
+
+from serial import Serial, SerialException
+
+from alarmdecoder.devices import SerialDevice, SocketDevice, USBDevice
+from alarmdecoder.util.exceptions import CommError, NoDeviceError, TimeoutError
 
 # Optional FTDI tests
 try:
     from pyftdi.pyftdi.ftdi import Ftdi, FtdiError
-    from usb.core import USBError, Device as USBCoreDevice
+    from usb.core import Device as USBCoreDevice
+    from usb.core import USBError
 
     have_pyftdi = True
 
@@ -81,13 +83,12 @@ class TestSerialDevice(TestCase):
         self._device.interface = '/dev/ttyS0'
         self._device.open(no_reader_thread=True)
         side_effect = ["t"]
-        if sys.version_info > (3,):
-            side_effect = ["t".encode('utf-8')]
+        side_effect = [b"t"]
 
         with patch.object(self._device._device, 'read', side_effect=side_effect) as mock:
             with patch('serial.Serial.fileno', return_value=1):
                 with patch.object(select, 'select', return_value=[[1], [], []]):
-                    ret = self._device.read()
+                    self._device.read()
 
             mock.assert_called_with(1)
 
@@ -100,8 +101,7 @@ class TestSerialDevice(TestCase):
 
     def test_read_line(self):
         side_effect = list("testing\r\n")
-        if sys.version_info > (3,):
-            side_effect = [chr(x).encode('utf-8') for x in b"testing\r\n"]
+        side_effect = [chr(x).encode('utf-8') for x in b"testing\r\n"]
 
         with patch.object(self._device._device, 'read', side_effect=side_effect):
             with patch('serial.Serial.fileno', return_value=1):
@@ -115,7 +115,7 @@ class TestSerialDevice(TestCase):
                     self.assertEqual(ret, "testing")
 
     def test_read_line_timeout(self):
-        with patch.object(self._device._device, 'read', return_value=b'a') as mock:
+        with patch.object(self._device._device, 'read', return_value=b'a'):
             with patch('serial.Serial.fileno', return_value=1):
                 with patch.object(select, 'select', return_value=[[1], [], []]):
                     with self.assertRaises(TimeoutError):
@@ -195,8 +195,7 @@ class TestSocketDevice(TestCase):
 
     def test_read_line(self):
         side_effect = list("testing\r\n")
-        if sys.version_info > (3,):
-            side_effect = [chr(x).encode('utf-8') for x in b"testing\r\n"]
+        side_effect = [chr(x).encode('utf-8') for x in b"testing\r\n"]
 
         with patch('socket.socket.fileno', return_value=1):
             with patch.object(select, 'select', return_value=[[1], [], []]):
@@ -212,7 +211,7 @@ class TestSocketDevice(TestCase):
     def test_read_line_timeout(self):
         with patch('socket.socket.fileno', return_value=1):
             with patch.object(select, 'select', return_value=[[1], [], []]):
-                with patch.object(self._device._device, 'recv', return_value=b'a') as mock:
+                with patch.object(self._device._device, 'recv', return_value=b'a'):
                     with self.assertRaises(TimeoutError):
                         self._device.read_line(timeout=0.1)
 
@@ -255,7 +254,7 @@ class TestSocketDevice(TestCase):
                     with patch.object(socket.socket, 'fileno', return_value=fileno):
                         try:
                             self._device.open(no_reader_thread=True)
-                        except SSL.SysCallError as ex:
+                        except SSL.SysCallError:
                             pass
 
         os.close(fileno)
@@ -277,13 +276,13 @@ class TestSocketDevice(TestCase):
 
         # ..there has to be a better way..
         with patch.object(socket.socket, '__init__', return_value=None):
-            with patch.object(socket.socket, 'connect', return_value=None) as mock:
+            with patch.object(socket.socket, 'connect', return_value=None):
                 with patch.object(socket.socket, '_sock'):
                     with patch.object(socket.socket, 'fileno', return_value=fileno):
                         with self.assertRaises(CommError):
                             try:
                                 self._device.open(no_reader_thread=True)
-                            except SSL.SysCallError as ex:
+                            except SSL.SysCallError:
                                 pass
 
         os.close(fileno)
@@ -317,15 +316,15 @@ if have_pyftdi:
             with patch.object(Ftdi, 'find_all', return_value=[(0, 0, 'AD2', 1, 'AD2')]):
                 device = USBDevice.find()
 
-                self.assertEquals(device.interface, 'AD2')
+                self.assertEqual(device.interface, 'AD2')
 
         def test_find_with_param(self):
             with patch.object(Ftdi, 'find_all', return_value=[(0, 0, 'AD2-1', 1, 'AD2'), (0, 0, 'AD2-2', 1, 'AD2')]):
                 device = USBDevice.find((0, 0, 'AD2-1', 1, 'AD2'))
-                self.assertEquals(device.interface, 'AD2-1')
+                self.assertEqual(device.interface, 'AD2-1')
 
                 device = USBDevice.find((0, 0, 'AD2-2', 1, 'AD2'))
-                self.assertEquals(device.interface, 'AD2-2')
+                self.assertEqual(device.interface, 'AD2-2')
 
         def test_events(self):
             self.assertFalse(self._attached)
@@ -344,32 +343,32 @@ if have_pyftdi:
             self.assertTrue(self._detached)
 
         def test_find_all(self):
-            with patch.object(USBDevice, 'find_all', return_value=[]) as mock:
+            with patch.object(USBDevice, 'find_all', return_value=[]):
                 devices = USBDevice.find_all()
 
-            self.assertEquals(devices, [])
+            self.assertEqual(devices, [])
 
         def test_find_all_exception(self):
-            with patch.object(Ftdi, 'find_all', side_effect=[USBError('testing'), FtdiError]) as mock:
+            with patch.object(Ftdi, 'find_all', side_effect=[USBError('testing'), FtdiError]):
                 with self.assertRaises(CommError):
-                    devices = USBDevice.find_all()
+                    USBDevice.find_all()
 
                 with self.assertRaises(CommError):
-                    devices = USBDevice.find_all()
+                    USBDevice.find_all()
 
         def test_interface_serial_number(self):
             self._device.interface = 'AD2USB'
 
-            self.assertEquals(self._device.interface, 'AD2USB')
-            self.assertEquals(self._device.serial_number, 'AD2USB')
-            self.assertEquals(self._device._device_number, 0)
+            self.assertEqual(self._device.interface, 'AD2USB')
+            self.assertEqual(self._device.serial_number, 'AD2USB')
+            self.assertEqual(self._device._device_number, 0)
 
         def test_interface_index(self):
             self._device.interface = 1
 
-            self.assertEquals(self._device.interface, 1)
-            self.assertEquals(self._device.serial_number, None)
-            self.assertEquals(self._device._device_number, 1)
+            self.assertEqual(self._device.interface, 1)
+            self.assertEqual(self._device.serial_number, None)
+            self.assertEqual(self._device._device_number, 1)
 
         def test_open(self):
             self._device.interface = 'AD2USB'
@@ -428,10 +427,10 @@ if have_pyftdi:
                 except StopIteration:
                     pass
 
-                self.assertEquals(ret, b"testing")
+                self.assertEqual(ret, b"testing")
 
         def test_read_line_timeout(self):
-            with patch.object(self._device._device, 'read_data', return_value='a') as mock:
+            with patch.object(self._device._device, 'read_data', return_value='a'):
                 with self.assertRaises(TimeoutError):
                     self._device.read_line(timeout=0.1)
 

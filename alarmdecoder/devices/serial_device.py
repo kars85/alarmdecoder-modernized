@@ -1,12 +1,13 @@
+import logging
+import select
+import time
+
 import serial
 import serial.tools.list_ports
-import select
-import logging
-import time
-from typing import Union
 from serial import SerialException, SerialTimeoutException
+
 from alarmdecoder.devices.base_device import Device
-from alarmdecoder.util.exceptions import CommError, TimeoutError, NoDeviceError
+from alarmdecoder.util.exceptions import CommError, NoDeviceError, TimeoutError
 from alarmdecoder.util.io import filter_ad2prot_byte
 
 # Logger configuration
@@ -94,7 +95,7 @@ class SerialDevice(Device):
         return self._device.fileno()
 
     # Ensure _encode_data is robust (example fix from previous discussion)
-    def _encode_data(self, data: Union[str, bytes]) -> bytes:
+    def _encode_data(self, data: str | bytes) -> bytes:
         # Safely get encoding, default to utf-8
         encoding = getattr(self, 'ENCODING', 'utf-8')
         if isinstance(data, str):
@@ -105,7 +106,7 @@ class SerialDevice(Device):
             # Handle unexpected type if necessary, or raise TypeError
             raise TypeError(f"Data to write must be str or bytes, not {type(data).__name__}")
 
-    def write(self, data: Union[str, bytes]) -> int:  # Return int (bytes written)
+    def write(self, data: str | bytes) -> int:  # Return int (bytes written)
         """
         Writes data to the serial device after ensuring it is bytes.
 

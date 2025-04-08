@@ -7,9 +7,9 @@ and low-level data manipulation for AlarmDecoder devices.
 
 
 import select
-from typing import Union
 
 from alarmdecoder.util.exceptions import UploadChecksumError, UploadError
+
 
 def bytes_available(device) -> int:
     """
@@ -21,18 +21,21 @@ def bytes_available(device) -> int:
     except Exception:
         return 0
 
-def bytes_hack(buf: Union[str, bytes]) -> bytes:
+
+def bytes_hack(buf: str | bytes) -> bytes:
     """
     Ensures a bytes-compatible object from str or bytes input.
     Legacy compatibility for byte operations.
     """
     return buf.encode("utf-8") if isinstance(buf, str) else buf
 
+
 def filter_ad2prot_byte(buf: bytes) -> bytes:
     """
     Filters out special control characters from AlarmDecoder protocol stream.
     """
     return bytes([b for b in buf if b >= 0x20 and b != 0x7F])
+
 
 def read_firmware_file(file_path: str) -> list[str]:
     """
@@ -42,7 +45,7 @@ def read_firmware_file(file_path: str) -> list[str]:
         UploadChecksumError: If a checksum mismatch is detected.
         UploadError: If the data is malformed or incorrect.
     """
-    with open(file_path, "r") as hexfile:
+    with open(file_path) as hexfile:
         lines = []
         for line_number, line in enumerate(hexfile, 1):
             line = line.strip()
