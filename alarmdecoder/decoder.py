@@ -1,5 +1,5 @@
 import logging
-import sys
+from typing import Optional
 from alarmdecoder.event import event
 from alarmdecoder.event.wiring import wire_events, unwire_events
 from alarmdecoder.logger import get_logger
@@ -192,8 +192,8 @@ class AlarmDecoder:
         self.address = 18
         self.configbits = 0xFF00
         self.address_mask = 0xFFFFFFFF
-        self.emulate_zone = [False for x in list(range(5))]
-        self.emulate_relay = [False for x in list(range(4))]
+        self.emulate_zone = [False] * 5
+        self.emulate_relay = [False] * 4
         self.emulate_lrr = False
         self.deduplicate = False
         self.mode = ADEMCO
@@ -351,7 +351,7 @@ class AlarmDecoder:
 
         :param zone: zone to fault
         :type zone: int
-        :param simulate_wire_problem: Whether or not to simulate a wire fault
+        :param simulate_wire_problem: Whether to simulate a wire fault
         :type simulate_wire_problem: bool
         """
 
@@ -366,8 +366,7 @@ class AlarmDecoder:
 
         status = 2 if simulate_wire_problem else 1
 
-        self.send(f"L{int(zone):02}{status}
-")
+        self.send(f"L{int(zone):02}{status}")
 
     def clear_zone(self, zone):
         """
@@ -376,8 +375,7 @@ class AlarmDecoder:
         :param zone: zone to clear
         :type zone: int
         """
-        self.send(f"L{int(zone):02}0
-")
+        self.send(f"L{int(zone):02}0")
 
     def _handle_message(self, data):
         logger.debug("Handling incoming message: %s", data)
@@ -402,28 +400,27 @@ class AlarmDecoder:
             elif isinstance(message, AUIMessage):
                 self._handle_aui(data)
 
-        except InvalidMessageError as ex:
+        except InvalidMessageError:
             logger.warning("Invalid message received: %s", data)
 
-    def _handle_keypad_message(self, data):
+    def _handle_keypad_message(self, data: str) -> Optional[PanelMessage]:
         """
         Handle keypad messages.
 
         :param data: keypad message to parse
-        :type data: string
-
-        :returns: :py:class:`~alarmdecoder.messages.Message`
+        :returns: Parsed PanelMessage if valid, else None
         """
+        msg = PanelMessage(data)
 
-        msg = BaseMessage(data)
-
-        if self._internal_address_mask & msg.mask > 0:
+        # Ensure mask is defined and mask check passes
+        if msg.mask is not None and (self._internal_address_mask & msg.mask > 0):
             if not self._ignore_message_states:
                 self._update_internal_states(msg)
 
             self.on_message(message=msg)
+            return msg
 
-        return msg
+        return None
 
     def _handle_expander_message(self, data):
         """
@@ -565,7 +562,7 @@ class AlarmDecoder:
         from alarmdecoder.status.updater import update_zone_tracker
         update_zone_tracker(self, message)
 
-    def _on_relay_changed(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_relay_changed(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the device detects a relay state change.
         """
@@ -580,33 +577,33 @@ class AlarmDecoder:
 
     def _on_close(self, sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_close
-        handle_on_close(self, *args, **kwargs)
+        handle_on_close(self, sender, *args, **kwargs)
 
-    def _on_read(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_read(self, _sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_read
         data = args[0] if args else None
         if data:
             handle_on_read(self, data, *args[1:], **kwargs)
 
-    def _on_write(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_write(self, _sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.handlers.versioning import handle_on_write
         data = args[0] if args else None
         if data:
             handle_on_write(self, data, *args[1:], **kwargs)
 
-    def _on_zone_fault(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_zone_fault(self, _sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.status.updater import handle_zone_fault
         zone = args[0] if args else None
         if zone:
             handle_zone_fault(self, zone, *args[1:], **kwargs)
 
-    def _on_zone_restore(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_zone_restore(self, _sender: object, *args: object, **kwargs: object) -> None:
         from alarmdecoder.status.updater import handle_zone_restore
         zone = args[0] if args else None
         if zone:
             handle_zone_restore(self, zone, *args[1:], **kwargs)
 
-    def _on_panic(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_panic(self, _sender: object, *_args: object, **kwargs: object) -> None:
         """
         Handles panic status updates.
         """
@@ -614,59 +611,59 @@ class AlarmDecoder:
         self._panic = status
         self.on_panic.fire(self, status)
 
-    def _on_chime_changed(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_chime_changed(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the device detects a chime state change.
         """
         self.on_chime_changed.fire(self, *args, **kwargs)
 
-    def _on_alarm(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_alarm(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the alarm is triggered.
         """
         self.on_alarm.fire(self, *args, **kwargs)
 
-    def _on_alarm_restored(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_alarm_restored(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the alarm is restored.
         """
         self.on_alarm_restored.fire(self, *args, **kwargs)
 
-    def _on_fire(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_fire(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when a fire event occurs.
         """
         self.on_fire.fire(self, *args, **kwargs)
 
-    def _on_config_received(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_config_received(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the device configuration is received.
         """
         self.on_config_received.fire(self, *args, **kwargs)
 
-    def _on_arm(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_arm(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the panel is armed.
         """
         self.on_arm.fire(self, *args, **kwargs)
 
-    def _on_disarm(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_disarm(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the panel is disarmed.
         """
         self.on_disarm.fire(self, *args, **kwargs)
 
-    def _on_bypass(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_bypass(self, _sender: object, *args: object, **kwargs: object) -> None:
         """Called when a zone is bypassed."""
         self.on_bypass.fire(self, *args, **kwargs)
 
-    def _on_ready_changed(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_ready_changed(self, _sender: object, *args: object, **kwargs: object) -> None:
         """
         Called when the panel ready state changes.
         """
         self.on_ready_changed.fire(self, *args, **kwargs)
 
-    def _on_power_changed(self, sender: object, *args: object, **kwargs: object) -> None:
+    def _on_power_changed(self, _sender: object, *_args: object, **kwargs: object) -> None:
         message = kwargs.get('message')
         status = kwargs.get('status')
 

@@ -20,7 +20,6 @@ from typing import Union, Optional, Tuple # Import typing helpers
 from alarmdecoder.devices.base_device import Device
 # Ensure these specific exceptions are importable or defined correctly
 from alarmdecoder.util import CommError, TimeoutError, NoDeviceError
-from alarmdecoder.util.io import bytes_hack
 
 # Set up logger for this module
 logger = logging.getLogger(__name__)
@@ -237,12 +236,13 @@ class SocketDevice(Device):
                      raise CommError("Connection closed by peer.")
 
         except ssl_specific_exceptions as ssl_err:
-             # Specifically ignore WantReadError if non-blocking, or handle SysCallError
-             if isinstance(ssl_err, OpenSSL_SSL.WantReadError):
+            ssl_err: OpenSSL_SSL.SysCallError
+            # Specifically ignore WantReadError if non-blocking, or handle SysCallError
+            if isinstance(ssl_err, OpenSSL_SSL.WantReadError):
                   logger.debug("SSL WantRead during single byte read.")
                   # Return empty string as if no data was ready immediately
                   return ""
-             else: # SysCallError
+            else: # SysCallError
                  errno, msg = ssl_err.args
                  logger.error("SSL SysCallError during read on %s: %s (%d)", self._id, msg, errno, exc_info=True)
                  raise CommError(f'SSL syscall error while reading from device: {msg} ({errno})') from ssl_err
@@ -310,25 +310,27 @@ class SocketDevice(Device):
             comm_exceptions_to_catch += (OpenSSL_SSL.Error,)
             ssl_specific_exceptions = (OpenSSL_SSL.WantReadError, OpenSSL_SSL.SysCallError)
 
-
         try:
             while True:
                 # Calculate remaining timeout
                 time_elapsed = time.time() - start_time
-                remaining_timeout = max(0, timeout - time_elapsed) if timeout > 0 else 0.05 # Short poll if timeout=0
+                remaining_timeout = max(0.0,
+                                        timeout - time_elapsed) if timeout > 0.0 else 0.05  # Short poll if timeout=0
 
+                # Wait for data availability
                 read_ready, _, _ = select.select([self._device], [], [], remaining_timeout)
 
                 if not read_ready:
                     # Timeout occurred
-                    if timeout > 0 and (time.time() - start_time) >= timeout:
-                         logger.warning("Timeout waiting for line terminator on %s", self._id)
-                         raise TimeoutError('Timeout while waiting for line terminator.')
-                    elif timeout == 0: # Non-blocking check failed
-                         raise TimeoutError('No line immediately available (non-blocking).')
-                    else: # Loop again if using the short poll (remaining_timeout=0.05)
-                         continue
+                    elapsed = time.time() - start_time
 
+                    if timeout > 0.0 and elapsed >= timeout:
+                        logger.warning("Timeout waiting for line terminator on %s", self._id)
+                        raise TimeoutError('Timeout while waiting for line terminator.')
+                    elif timeout == 0.0:  # Non-blocking check failed
+                        raise TimeoutError('No line immediately available (non-blocking).')
+                    else:
+                        continue  # Retry the loop
 
                 # Data is ready, read a chunk
                 try:
@@ -488,3 +490,15 @@ class SocketDevice(Device):
         # However, setting VERIFY_NONE might be sufficient.
         # For simplicity now, just return ok.
         return ok
+
+    @property
+    def ssl_key(self):
+        return self._ssl_key
+
+    @property
+    def ssl_certificate(self):
+        return self._ssl_certificate
+
+    @property
+    def ssl_ca(self):
+        return self._ssl_ca

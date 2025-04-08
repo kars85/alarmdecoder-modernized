@@ -30,7 +30,7 @@ class PanelMessage(BaseMessage):
     system_fault: bool = False
     zone_bypassed: bool = False
     numeric_code: Optional[str] = None
-    mask: Optional[str] = None
+    mask: Optional[int] = None
     beeps: Optional[int] = None
     cursor_location: Optional[int] = None
     panel_type: Optional[str] = None

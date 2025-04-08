@@ -7,7 +7,7 @@ from alarmdecoder.logger import get_logger
 logger = get_logger(__name__)
 
 
-@dataclass
+@dataclass(init=False)  # Disable auto-generated init
 class ExpanderMessage(BaseMessage):
     address: Optional[int] = None
     type: Optional[int] = None
@@ -16,6 +16,15 @@ class ExpanderMessage(BaseMessage):
 
     ZONE = 0
     RELAY = 1
+
+    def __init__(self, data: Optional[str] = None, address=None, type=None, channel=None, value=None):
+        super().__init__(data)
+        self.address = address
+        self.type = type
+        self.channel = channel
+        self.value = value
+        if data:
+            self._parse_message(data)
 
     def __post_init__(self):
         if self.raw:

@@ -39,20 +39,3 @@ pythonpath = [
   "." # Add the project root directory to the Python path
   # Add "src" here instead if your alarmdecoder package was inside a 'src' folder
 ]
-
-[flake8]
-# Increase default max line length
-max-line-length = 200
-# Ignore certain errors (e.g., E203 whitespace before ':')
-# Find error codes in Flake8 documentation
-ignore = ["E203", "W503"]
-# Exclude certain directories
-exclude = [
-    ".git",
-    "__pycache__",
-    "docs/source/conf.py",
-    "build",
-    "dist",
-    "venv",
-    ".venv"
-]
