@@ -10,7 +10,10 @@ setup(
     author_email='general@support.nutech.com',
     url='https://github.com/nutechsoftware/alarmdecoder',
     license='MIT',
-    packages=find_packages(exclude=['test', 'tests']),
+
+    # ✅ KEEP ONE of these, and use both include+exclude if needed
+    packages=find_packages(include=["alarmdecoder*"], exclude=['test', 'tests']),
+
     python_requires='>=3.11',
     install_requires=[
         'pyserial>=3.5',
