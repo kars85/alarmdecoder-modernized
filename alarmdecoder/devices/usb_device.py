@@ -4,25 +4,26 @@ This module contains the USBDevice interface for the AD2USB hardware.
 Refactored for Python 3.11+ with modern structure, error handling, and device detection.
 """
 
-import time
 import threading
+import time
 
-from .base_device import Device
-from ..util import CommError, TimeoutError, NoDeviceError
 from alarmdecoder.util.io import bytes_hack
+
 from ..event import event
+from ..util import CommError, NoDeviceError, TimeoutError
+from .base_device import Device
 
 # Handle pyftdi import
 try:
-    from pyftdi.pyftdi.ftdi import Ftdi, FtdiError
     import usb.core
     import usb.util
+    from pyftdi.pyftdi.ftdi import Ftdi, FtdiError
     HAVE_PYFTDI = True
 except ImportError:
     try:
-        from pyftdi.ftdi import Ftdi, FtdiError
         import usb.core
         import usb.util
+        from pyftdi.ftdi import Ftdi, FtdiError
         HAVE_PYFTDI = True
     except ImportError:
         HAVE_PYFTDI = False
