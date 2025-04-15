@@ -49,3 +49,4 @@ unsafe-fixes = false # <-- Moved here
 select = ["E", "F", "I", "UP"]
 ignore = ["E501"]
 extend-select = ["I"] # <-- Moved here
+
